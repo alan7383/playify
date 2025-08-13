@@ -1,0 +1,23 @@
+error:
+  critical:
+    title: (╥﹏╥) Oh no! A critical error happened...
+    description: Something went wrong... (´；ω；`) Can you please tell the developers on GitHub so they can make me better?
+    report:
+      value: You can create an issue here:\n**{issue_url}**\n\nPlease include the error details below.
+      field: Error Details
+  no_voice_channel: You must be in a voice channel to use this command.
+  connection: Error connecting to the voice channel.
+player:
+  error:
+    title: 🚨 {player} Error
+    description:
+      broad: (´；ω；`) Oh no! Problem with the {player} link... maybe it`s shy or hidden?
+      detailed: | 
+        (´；ω；`) Oh no! I couldn't get the songs from this {player} link...
+        
+        **Maybe...** it's a secret playlist, or it ran away! My backup magic didn't work either; {player} might have changed its clothes, and I don't recognize it anymore...
+  playlist:
+    added: ☆*:.｡.o(≧▽≦)o.｡.:*☆ {player|upper} PLAYLIST
+    description: |
+      **{count} songs** added, {failed} couldn`t join! (´･ω･`)
+      {failed_tracks}

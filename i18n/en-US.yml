@@ -1,0 +1,123 @@
+error:
+  critical:
+    title: 🚨 An Unexpected Error Occurred
+    description: The bot encountered a problem. Please report this issue on GitHub so we can fix it!
+    report:
+      value: You can create an issue here:\n**{issue_url}**\n\nPlease include the error details below.
+      field: Error Details
+  no_voice_channel: You must be in a voice channel to use this command.
+  connection: Error connecting to the voice channel.
+player:
+  error:
+    generic:
+      title: 🚨 {player} Error
+      description:
+        broad: Error processing the {player} link. It may be private, region-locked, or invalid.
+        detailed: | 
+          Could not process this {player} link.
+
+          **Probable reason:** The playlist might be private, deleted, or unavailable in the bot's region.
+
+          *The fallback method also failed, which can happen if {player} recently updated its website.*
+    video: 
+      title: Error adding the video or playlist.
+    search: 
+      title: Error during search. Try another title.
+    playlist:
+      title: Error processing the playlist. It may be private, region-locked, or invalid.
+  playlist:
+    added: 🎶 {player} Playlist Added
+    description: |
+      **{count} tracks** added, {failed} failed.
+      {failed_tracks}
+    loading: Processing playlist...\n{processed}/{total} tracks added
+
+  now_playing:
+    title: 🎵 Now Playing
+    description: |
+      [{title}](url)
+  pause: ⏸️ Playback paused.
+  no_playback: No playback in progress.
+  resume: ▶️ Playback resumed.
+  no_pause: No playback to resume.
+  skip: 
+    title: ⏭️ Skipped to the next track.
+    no_song: No song is playing.
+  no_song: No song is currently playing.
+  loop:
+    title: 🔁 Looping for the current song {state}.
+    state:
+      enabled: enabled
+      disabled: disabled
+  stop: ⏹️ Playback stopped and bot disconnected.
+  not_connected: The bot is not connected to a voice channel.
+  kawaii_toggle: 
+    title: "Kawaii mode {state} for this server!"
+    state:
+      enabled: enabled
+      disabled: disabled
+  shuffle:
+    success: 🔀 Queue shuffled successfully!
+  queue:
+    title: 🎶 Current Queue
+    description: |
+      There are **{count} songs** in the queue.
+    empty: The queue is empty.
+    next: 🎵 Next Song
+    song: "- [{title}](url)"
+    clear: ✅ Queue cleared.
+  autoplay:
+    toggle: "Autoplay {state}"
+    state:
+      enabled: enabled
+      disabled: disabled
+    added: 🎵 Adding similar songs to the queue... (This may take up to 1 minute)
+  play_next_added: 🎵 Added as next song
+  filter:
+    title: 🎧 Audio Filters
+    description: Click on the buttons to enable or disable a filter in real time!
+    no_song: Nothing is currently playing to apply a filter on.
+
+lyrics:
+  error: 
+    not_found: 
+      title: 😢 Lyrics Not Found
+      description: | 
+        I couldn't find lyrics for **{query}**.
+      
+        You can refine the search yourself. Try using just the song title.
+  buttons:
+    refine: Refine Search
+
+karaoke:
+  error:
+    fallback: Synced lyrics not found. Displaying standard lyrics instead.
+    not_found: 
+      title: 😢 Synced Lyrics Not Found
+      description: |
+       I couldn't find synced lyrics for **{query}**.
+       
+       You can refine the search or search for standard (non-synced) lyrics on Genius.
+  warning:
+    title: 🎤 Karaoke - Important Notice
+    description: |
+      Please note that the timing of the lyrics (») is matched automatically and can vary.
+      
+      **💡 Pro Tip:** For the best results, try adding `topic` or `audio` to your search (e.g., `party addict kets4eki topic`).
+      
+      Press **Continue** to start.
+    button: Continue
+  disclaimer:
+    title: "Please note: The timing of the arrow (») and lyric accuracy are matched automatically and can vary based on the song version or active filters."
+  retry:
+    success: Lyrics found! Starting karaoke...
+    fail: Sorry, I still couldn't find synced lyrics for **{query}**.
+  buttons:
+    refine: Refine Search
+    genius_fallback: Search on Genius
+
+
+
+
+
+  
