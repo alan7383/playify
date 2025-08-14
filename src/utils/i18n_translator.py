@@ -91,8 +91,8 @@ class I18nTranslator:
 
         if not self.__translations:
             raise ValueError("No translations found in the specified directory.")
-        
-        if not self.__default_locale.value in self.__translations:
+
+        if not self.__default_locale.value in self.__translations.keys():
             raise ValueError(f"Default locale '{self.__default_locale.value}' not found in translations.")
 
     def translate(self, key, locale=None, **kwargs) -> str:
@@ -107,9 +107,15 @@ class I18nTranslator:
 
         """
         if locale is None:
-            locale = self.__default_locale
+            locale = self.__default_locale.value
+        if isinstance(locale, Locale):
+            locale = locale.value
+        if locale not in self.__translations:
+            raise ValueError(f"Locale '{locale}' not found in translations.")
         translations = self.__translations.get(locale, {})
-
+        if not translations:
+            raise ValueError(f"No translations found for locale '{locale}'.")
+        
         keys = key.split('.')
         value = translations
         for k in keys:
