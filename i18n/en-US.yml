@@ -5,8 +5,97 @@ error:
     report:
       value: You can create an issue here:\n**{issue_url}**\n\nPlease include the error details below.
       field: Error Details
-  no_voice_channel: You must be in a voice channel to use this command.
-  connection: Error connecting to the voice channel.
+  no_voice_channel: 
+    title: You must be in a voice channel to use this command.
+  connection: 
+    title: Error connecting to the voice channel.
+  extraction:
+    title: ⚠️ Could Not Add Track
+    description: |
+      Reason: {error_message}
+  age_restricted:
+    title: ⚠️ Age-Restricted Video
+    description: |
+      This video requires sign-in to confirm the user's age and cannot be played by the bot.
+  private_video:
+    title: ⚠️ Private Video
+    description: |
+      This video is marked as private and cannot be accessed.
+  video_unavailable:
+    title: ⚠️ Video Unavailable
+    description: |
+      This video is no longer available or may have been removed.
+  generic:
+    title: ⚠️ Access Denied
+    description: |
+      The bot was blocked from accessing this video. This can happen with certain live streams or premieres.
+  full_error:
+    title: Full Error for Bug Report
+  what_to_do:
+    title: What to do?
+    description: |
+      Some videos have restrictions that prevent bots from playing them.
+      
+      If you believe this is a different bug, please [open an issue on GitHub]({github_link}).
+  youtube:
+    blocked:
+      title: YouTube Links Disabled
+      description: |
+        Due to Google/YouTube restrictions, playing YouTube links directly is not supported on the public version of Playify.
+        
+        To get full YouTube playback, I made a super simple Windows app that sets up self-hosting for you — it`s free and gives you full control!
+      repo:
+        title: Get the Code & Setup
+        description: |
+          GitHub repo: {windows_url} Windows setup & instructions: {setup_url}
+
+allowlist:
+  restricted:
+    title: 🚫 Command Disabled Here
+    description: |
+      Sorry, {bot_name} commands can only be used in specific channels on this server.
+  set:
+    success: "✅ Success! Bot commands are now restricted to the following channels: {channels}"
+  reset:
+    success: "✅ Success! All command restrictions have been removed. The bot will now respond in any channel."
+  error:
+    invalid_args:
+      title: "Invalid usage. You must either specify at least one channel to set the allowlist, or type 'default' in the `reset` option to remove it."
+
+discord:
+  command:
+    title: 🔗 Join Our Discord!
+    description: |
+      Click the button below to join the official Playify support and community server.
+    button: Join Server
+
+24_7:
+  error:
+    invalid_mode:
+      title: Invalid mode! Use `/24_7 auto` or `/24_7 normal`
+      description: |
+        The specified mode is not valid. Please choose one of the following modes:
+        - `on`: Enable 24/7 radio mode.
+        - `off`: Disable 24/7 radio mode.
+        - `auto`: Enable autoplay mode.
+        - `normal`: Enable normal loop mode.
+  on: 
+    title: 📻 24/7 Radio ON
+    description: |
+      Queue will loop indefinitely - bot stays & auto-resumes when you re-join.
+  off:
+    title: 📴 24/7 Radio OFF
+    description: |
+      Queue cleared - bot will disconnect after 60 s if left alone.
+  auto:
+    title: 🔄 24/7 Auto Mode
+    description: |
+      Autoplay enabled - will add similar songs when playlist ends!
+  normal:
+    title: 🔁 24/7 Loop Mode
+    description: |
+      Playlist will loop indefinitely without adding new songs.
+
 player:
   error:
     generic:
@@ -31,52 +120,166 @@ player:
       **{count} tracks** added, {failed} failed.
       {failed_tracks}
     loading: Processing playlist...\n{processed}/{total} tracks added
-
   now_playing:
     title: 🎵 Now Playing
     description: |
       [{title}](url)
-  pause: ⏸️ Playback paused.
-  no_playback: No playback in progress.
-  resume: ▶️ Playback resumed.
-  no_pause: No playback to resume.
+  pause: 
+    title: ⏸️ Playback paused.
+  no_playback: 
+    title: No playback in progress.
+  resume: 
+    title: ▶️ Playback resumed.
+  no_pause: 
+    title: No playback to resume.
   skip: 
     title: ⏭️ Skipped to the next track.
     no_song: No song is playing.
-  no_song: No song is currently playing.
+    confirmation: ⏭️ Song Skipped!
+    queue_empty: The queue is now empty.
+  remove:
+    title: 🗑️ Remove Songs
+    description: |
+      Use the dropdown menu to select one or more songs to remove.
+      Use the buttons to navigate if you have more than 25 songs.
+    placeholder: Select one or more songs to remove...
+    success: ✅ {count} Song(s) Removed
+    processed: "*Selection has been processed.*"
+  no_song: 
+    title: No song is currently playing.
   loop:
     title: 🔁 Looping for the current song {state}.
     state:
       enabled: enabled
       disabled: disabled
-  stop: ⏹️ Playback stopped and bot disconnected.
-  not_connected: The bot is not connected to a voice channel.
-  kawaii_toggle: 
-    title: "Kawaii mode {state} for this server!"
-    state:
-      enabled: enabled
-      disabled: disabled
+  stop: 
+    title: ⏹️ Playback stopped and bot disconnected.
+  not_connected: 
+    title: The bot is not connected to a voice channel.
   shuffle:
     success: 🔀 Queue shuffled successfully!
-  queue:
-    title: 🎶 Current Queue
+  fastforward:
+    success: ⏩ Fast-forwarded by **{duration}**.
+    button:
+      label: Forward 15s
+  rewind:
+    success: ⏪ Rewound by **{duration}**.
+    button:
+      label: Rewind 15s 
+  replay:
+    success:
+      title: 🎵 Song Replayed
+      description: |
+        Restarting [{title}]({url}) from the beginning.
+  play_next_added: 
+    title: 🎵 Added as next song
+  reconnect:
+    start: 🔃 Reconnecting to the voice channel to improve stability...
+    success: ✅ Reconnected! Resuming playback from where you left off.
+    not_playing: I can only reconnect during active playback.
+  search:
+    results:
+      title: 🔎 Search Results
+      description: |
+        Please select a song from the dropdown menu below to add it to the queue.
+    placeholder: Choose a song to add...
+    no_results:
+      title: Sorry, I couldn't find any results for **{query}**.
+    selected: 
+      title: "*Your selection has been added to the queue.*"
+    added:
+      title: ✅ Added to Queue
+  seek:
+    success: ▶️ Jumped to **{timestamp}**.
+    error:
+      live:
+        title: ⌛ Cannot seek in a live stream.
+      invalid_time:
+        title: ⏳ Invalid time format. Use `HH:MM:SS`, `MM:SS`, or `SS` (e.g., `1:23`).
+    interface:
+      title: ⏱️ Playback Control
+      footer: This interface will time out in 5 minutes.
+    modal:
+      title: ⏱️ Jump to Timestamp
+      label: New time (e.g., 1:23, 45)
+
+queue:
+  button:
+  next: Next ➡️
+  previous: ⬅️ Previous
+  title: 🎶 Current Queue
+  description: |
+    There are **{count} songs** in the queue.
+  empty: The queue is empty.
+  next: 🎵 Next Song
+  song: "- [{title}](url)"
+  clear: ✅ Queue cleared.
+  footer: |
+    Page {current_page}/{total_pages}
+  last_song: no other songs are in the queue.
+  status:
+    title: Current status
+    none: No special modes active
+    loop: "🔁 **Loop (Song)**: Enabled"
+    24_7: "📻 **24/7 ({mode})**: Enabled"
+    autoplay: "🔄 **Autoplay**: Enabled"
+    now_playing: "▶️ Now Playing"
+    volume: "🔊 **Volume**: {level}%"
+
+autoplay:
+  toggle: "Autoplay {state}"
+  state:
+    enabled: enabled
+    disabled: disabled
+  added: 🎵 Adding similar songs to the queue... (This may take up to 1 minute)
+  loading:
+    title: 💿 Autoplay in Progress
     description: |
-      There are **{count} songs** in the queue.
-    empty: The queue is empty.
-    next: 🎵 Next Song
-    song: "- [{title}](url)"
-    clear: ✅ Queue cleared.
-  autoplay:
-    toggle: "Autoplay {state}"
-    state:
-      enabled: enabled
-      disabled: disabled
-    added: 🎵 Adding similar songs to the queue... (This may take up to 1 minute)
-  play_next_added: 🎵 Added as next song
-  filter:
-    title: 🎧 Audio Filters
-    description: Click on the buttons to enable or disable a filter in real time!
-    no_song: Nothing is currently playing to apply a filter on.
+      {progress_bar}
+      Adding song {processed}/{total} to the queue...
+  finished:
+    description: |
+      Added **{count}** new songs to the queue! Enjoy the music.
+
+  error:
+    direct_link: |
+      💿 The last track was a direct link, which can't be used for recommendations. Searching queue history for a compatible song to start Autoplay...
+    file: |
+      💿 The last track was a local file, which can't be used for recommendations. Searching queue history for a compatible song to start Autoplay...
+
+jump_to: 
+  button:
+    label: Jump to...
+  success:
+    title: ⏭️ Jumped to **{title}**!
+  placeholder: Jump to a specific song in the queue...
+  title: JUMP TO SONG
+  description: | 
+    Use the dropdown menu to jump to a specific song in the queue.\nUse the buttons to navigate if you have a lot of songs.
+
+support:
+  title: 💖 Support the Creator
+  description: |
+    I spend countless hours, day and night, optimizing Playify, fixing bugs, and adding new features. Your support helps me keep the project alive and thriving! Every donation is deeply appreciated and allows me to dedicate more time to making the bot better for you.
+  patreon:
+    title: 🌟 Become a Patron
+  paypal:
+    title: 💰 One-Time Donation
+  discord:
+    title: 💬 Join the Community
+  contact:
+    title: ✉️ Contact Me
+
+kawaii_toggle: 
+  title: "Kawaii mode {state} for this server!"
+  state:
+    enabled: enabled
+    disabled: disabled
+
+filter:
+  title: 🎧 Audio Filters
+  description: Click on the buttons to enable or disable a filter in real time!
+  no_song: Nothing is currently playing to apply a filter on.
 
 lyrics:
   error: 
@@ -91,7 +294,8 @@ lyrics:
 
 karaoke:
   error:
-    fallback: Synced lyrics not found. Displaying standard lyrics instead.
+    fallback: 
+      title: Synced lyrics not found. Displaying standard lyrics instead.
     not_found: 
       title: 😢 Synced Lyrics Not Found
       description: |
@@ -116,8 +320,44 @@ karaoke:
     refine: Refine Search
     genius_fallback: Search on Genius
 
+volume:
+  success: 🔊 Volume adjusted to **{level}%**.
+
+controller:
+  title: 🎛️ Music Controller
+  idle:
+    description: |
+      Waiting for music...
+      Send the name or link of a song in this channel.
+  next_up:
+    title: "🎵 Next Up:"
+  now_playing:
+    title: "▶️ Now Playing:"
+  nothing_next:
+    title: "Nothing next"
+  no_other_songs:
+    title: "No other songs in the queue."
+  queue_empty:
+    title: "Queue is empty."
+  footer:
+    title: "{count} songs in queue | Total duration: {duration} | Volume: {volume}%"
+  label:
+    previous: Previous
+    pause: Pause
+    resume: Resume
+    skip: Skip
+    stop: Stop
+    add_song: Add Song
+    shuffle: Shuffle
+    loop: Loop
+    autoplay: Autoplay
+    lyrics: Lyrics
+    karaoke: Karaoke
+    queue: Show Queue
+    jump_to: Jump to...
+    vol_down: " "
+    vol_up: " "
 
 
 
 
-  
