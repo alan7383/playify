@@ -5,8 +5,19 @@ from enum import Enum
 
 # Define a simple Enum for supported locales
 class Locale(Enum):
-    EN_US = 'en-US'
-    EN_X_KAWAII = 'en-x-kawaii'
+    EN_US = 'en-US' # English (United States)
+    FR_FR = 'fr-FR' # French (France)
+    DE_DE = 'de-DE' # German (Germany)
+    EN_X_KAWAII = 'en-x-kawaii' # English (Kawaii variant)
+
+def fuzzy_format(value: str) -> str:
+    """
+    Format a string by capitalizing each second letter
+    """
+    return ''.join(
+        char.upper() if i % 2 == 0 else char.lower()
+        for i, char in enumerate(value)
+    )
 
 class I18nTranslator:
     """
@@ -14,6 +25,30 @@ class I18nTranslator:
     It loads translations from YAML files and provides methods to translate keys.
     It supports variable replacement and formatting in translations.
     Wrote it because available libraries didnt work as expected and got annoyed.
+
+    i18n variables:
+    - {var} for simple variable replacement
+    - {var|upper} for uppercasing the variable
+    - {var|lower} for lowercasing the variable
+    - {var|fuzzy} for fuzzy formatting the variable (eg. capitalizing every second letter)
+
+    Example usage:
+        translator = I18nTranslator(default_locale='en-US', translations_dir='i18n')
+        result = translator.translate('error.critical.title') # Output: "An error occurred"
+        french_result = translator.translate('error.critical.title', locale='fr-FR') # Output: "Une erreur s'est produite"
+
+    Attributes:
+        default_locale (Locale): The default locale to use for translations.
+        translations_dir (str): The directory where translation files are stored.
+        verbose (bool): If True, prints debug information during translation loading.
+        translations (dict): A dictionary containing loaded translations for each locale.
+    Methods:
+        get_current_default_locale(): Returns the current default locale.
+        get_available_locales(): Returns a list of available locales based on loaded translations.
+        load_translations(translations_dir): Loads translations from the specified directory.
+        translate(key, locale=None, **kwargs): Translates a key using the loaded translations.
+        t(key, locale=None, **kwargs): Short alias for translate method.
+        refresh_translations(translations_dir): Refreshes the translations by reloading them from the specified directory.
     """
     def __init__(self, default_locale=Locale.EN_US, translations_dir='i18n', verbose=False) -> None:
         """
@@ -64,6 +99,12 @@ class I18nTranslator:
         """
         Translate a key using the loaded translations.
         If the key does not exist, return the default value if provided.
+
+        Args:
+            key (str): The translation key to look up.
+            locale (str, optional): The locale to use for translation. Defaults to the default locale.
+            **kwargs: Additional keyword arguments for variable replacement in the translation string. (e.g., {var} or {var|upper})
+
         """
         if locale is None:
             locale = self.__default_locale
@@ -85,6 +126,8 @@ class I18nTranslator:
                     return val.upper()
                 elif fmt == 'lower':
                     return val.lower()
+                elif fmt == 'fuzzy':
+                    return fuzzy_format(val)
                 return str(val)
 
             # Replace placeholders such as {var|upper} or {var}
@@ -100,6 +143,12 @@ class I18nTranslator:
         Short alias for translate method.
         Translate a key using the loaded translations.
         If the key does not exist, return the default value if provided.
+
+        Args:
+            key (str): The translation key to look up.
+            locale (str, optional): The locale to use for translation. Defaults to the default locale.
+            **kwargs: Additional keyword arguments for variable replacement in the translation string. (e.g., {var} or {var|upper})
+
         """
         return self.translate(key, locale, **kwargs)
 
