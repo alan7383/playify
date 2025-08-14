@@ -3,7 +3,11 @@ error:
     title: 🚨 An Unexpected Error Occurred
     description: The bot encountered a problem. Please report this issue on GitHub so we can fix it!
     report:
-      value: You can create an issue here:\n**{issue_url}**\n\nPlease include the error details below.
+      value: | 
+        You can create an issue here:
+        **{issue_url}**
+        
+        Please include the error details below.
       field: Error Details
   no_voice_channel: 
     title: You must be in a voice channel to use this command.
@@ -47,13 +51,17 @@ error:
       repo:
         title: Get the Code & Setup
         description: |
-          GitHub repo: {windows_url} Windows setup & instructions: {setup_url}
+          GitHub repo: {windows_url} 
+          Windows setup & instructions: 
+          {setup_url}
 
 allowlist:
   restricted:
     title: 🚫 Command Disabled Here
     description: |
       Sorry, {bot_name} commands can only be used in specific channels on this server.
+  allowed:
+    title: Allowed Channels
   set:
     success: "✅ Success! Bot commands are now restricted to the following channels: {channels}"
   reset:
@@ -119,7 +127,9 @@ player:
     description: |
       **{count} tracks** added, {failed} failed.
       {failed_tracks}
-    loading: Processing playlist...\n{processed}/{total} tracks added
+    loading: | 
+      Processing playlist...
+      {processed}/{total} tracks added
   now_playing:
     title: 🎵 Now Playing
     description: |
@@ -207,11 +217,11 @@ queue:
   button:
   next: Next ➡️
   previous: ⬅️ Previous
-  title: 🎶 Current Queue
+  title: 🎶 Queue
   description: |
     There are **{count} songs** in the queue.
   empty: The queue is empty.
-  next: 🎵 Next Song
+  next: "🎵 Next Song:"
   song: "- [{title}](url)"
   clear: ✅ Queue cleared.
   footer: |
@@ -227,7 +237,7 @@ queue:
     volume: "🔊 **Volume**: {level}%"
 
 autoplay:
-  toggle: "Autoplay {state}"
+  toggle: "Autoplay {state}."
   state:
     enabled: enabled
     disabled: disabled
@@ -240,7 +250,6 @@ autoplay:
   finished:
     description: |
       Added **{count}** new songs to the queue! Enjoy the music.
-
   error:
     direct_link: |
       💿 The last track was a direct link, which can't be used for recommendations. Searching queue history for a compatible song to start Autoplay...
