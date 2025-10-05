@@ -3,7 +3,7 @@ git+https://github.com/Rapptz/discord.py
 PyNaCl
 
 # Audio/Video downloading
-yt_dlp
+git+https://github.com/yt-dlp/yt-dlp.git
 
 # Music platform APIs and scrapers
 spotipy
