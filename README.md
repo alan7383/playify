@@ -9,14 +9,15 @@
 <p align="center">
   <img src="https://img.shields.io/github/license/alan7383/playify.svg" alt="GitHub license" />
   <img src="https://img.shields.io/badge/python-3.9+-blue.svg" alt="Python 3.9+" />
+  <a href="https://discord.gg/JeH8g6g3cG"><img src="https://img.shields.io/discord/1395755097350213632?label=Discord%20Server&logo=discord" alt="Discord Server" /></a>
 </p>
 
 <div align="center">
   <blockquote>
     <h3>(ﾉ´ヮ`)ﾉ*: ･ﾟ I AM BACK!</h3>
-    <p>After months of absence and the repository being archived, <b>Playify is officially active again!</b><br>
-    I am back to maintaining the project, so the repo is unarchived and I am <b>fully open to new Issues, Pull Requests, and feature suggestions.</b><br>
-    Expect new updates coming your way soon! Thank you for waiting! (｡♥‿♥｡)</p>
+    <p><b>I am really sorry for disappearing without saying goodbye! (｡•́︿•̀｡)</b><br>
+    To be honest, I just got really tired of fighting against Google constantly blocking the bot. It was super annoying and exhausting, so I decided to stop everything overnight out of frustration.<br>
+    But I've rested, and <b>I am back to maintaining the project!</b> The repo is unarchived, and I am open to contributions again. Thank you for waiting! (｡♥‿♥｡)</p>
   </blockquote>
 </div>
 
@@ -29,7 +30,7 @@
 * [Spotify Support](#spotify-support)
 * [Key Features](#key-features)
 * [Installation](#installation)
-* [Use the Public Bot](#public-bot)
+* [Public Bot Status](#public-bot)
 * [Command Reference](#command-reference)
 * [Troubleshooting](#troubleshooting)
 * [Privacy & Data](#privacy--data)
@@ -156,12 +157,13 @@ This is the easiest way to get the bot running.
 
 
 <a id="public-bot"></a>
-## (＾▽＾) Use the Public Bot (No setup needed!)
+## (╥_╥) Public Bot Status
 
-If you don’t want to self-host Playify, you can invite the **public Playify bot** hosted by me directly to your server!  
-Check it out and add it easily here: [https://alan7383.github.io/playify/](https://alan7383.github.io/playify/)
+**The public bot is currently discontinued.**
 
-This way, you get all the great Playify features without any installation or configuration hassle!
+Unfortunately, due to stricter limitations from Google and YouTube, the public instance was detected as a bot and blocked. Maintaining a public instance that serves thousands of servers became impossible without hitting these bans constantly.
+
+To use Playify, please **self-host** it using the [Windows App](#easy-setup) or [Docker](#installation) methods above! It's much safer and ensures your music won't be interrupted.
 
 ---
 
@@ -207,7 +209,6 @@ This way, you get all the great Playify features without any installation or con
 ## (ﾉ◕ヮ◕)ﾉ Privacy & Data
 
 * **Self-hosted**: All logs are local to your machine. No telemetry is sent.
-* **Public bot**: Minimal error logs are stored for debugging purposes only. No user data or analytics are collected.
 
 <a id="contributing--support"></a>
 ## (ง＾◡＾)ง Contributing & Support
@@ -217,6 +218,10 @@ Now that I am back, I am actively reviewing contributions!
 * **Found a bug?** Open an Issue—I'm listening!
 * **Want a new feature?** Fork the repo and open a Pull Request. All contributions are welcome!
 * **Star the repository** if you enjoy using Playify!
+* Join our Discord server for help and community discussions:
+    [![Discord](https://img.shields.io/discord/1395755097350213632?label=Discord%20Server&logo=discord)](https://discord.gg/JeH8g6g3cG)
+* Support the project to help cover hosting costs and encourage development:
+    * Become a Patron on [Patreon](https://patreon.com/Playify) for special perks and to show your ongoing support!
     * [Donate via PayPal](https://www.paypal.com/paypalme/alanmussot1) for a one-time contribution.
 
 <a id="license"></a>
