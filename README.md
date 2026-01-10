@@ -9,8 +9,16 @@
 <p align="center">
   <img src="https://img.shields.io/github/license/alan7383/playify.svg" alt="GitHub license" />
   <img src="https://img.shields.io/badge/python-3.9+-blue.svg" alt="Python 3.9+" />
-  <a href="https://discord.gg/JeH8g6g3cG"><img src="https://img.shields.io/discord/1395755097350213632?label=Discord%20Server&logo=discord" alt="Discord Server" /></a>
 </p>
+
+<div align="center">
+  <blockquote>
+    <h3>(ﾉ´ヮ`)ﾉ*: ･ﾟ I AM BACK!</h3>
+    <p>After months of absence and the repository being archived, <b>Playify is officially active again!</b><br>
+    I am back to maintaining the project, so the repo is unarchived and I am <b>fully open to new Issues, Pull Requests, and feature suggestions.</b><br>
+    Expect new updates coming your way soon! Thank you for waiting! (｡♥‿♥｡)</p>
+  </blockquote>
+</div>
 
 ---
 
@@ -38,8 +46,7 @@ Too lazy to mess with Docker, Python, or configs? (｡•́︿•̀｡)
 No worries — I made a Windows app that sets up everything for you in one go!  
 You’ll just need to enter your **Discord token** + **Spotify / Genius API keys** once, and you’re done forever!
 
-**Get it here:**  
-📄 [Instructions & info](https://alan7383.github.io/playify/self-host.html)  
+**Get it here:** 📄 [Instructions & info](https://alan7383.github.io/playify/self-host.html)  
 ⬇ [Direct download](https://github.com/alan7383/playify/releases/download/1.5.1/Playify_Setup_v1.5.1.exe)
 
 ---
@@ -89,7 +96,7 @@ This is the easiest way to get the bot running.
 
 1.  **Clone the repository and enter it:**
     ```bash
-    git clone https://github.com/alan7383/playify.git
+    git clone [https://github.com/alan7383/playify.git](https://github.com/alan7383/playify.git)
     cd playify
     ```
 2.  **Create your secret file:**
@@ -114,14 +121,14 @@ This is the easiest way to get the bot running.
 ### (🛠️) Method 2: Manual Setup
 
 **Requirements:**
-*   Python 3.9+
-*   FFmpeg installed & in your system's PATH
-*   Git
+* Python 3.9+
+* FFmpeg installed & in your system's PATH
+* Git
 
 **Steps:**
 1.  Clone the repo:
     ```bash
-    git clone https://github.com/alan7383/playify.git
+    git clone [https://github.com/alan7383/playify.git](https://github.com/alan7383/playify.git)
     cd playify
     ```
 2.  Install dependencies:
@@ -140,10 +147,10 @@ This is the easiest way to get the bot running.
     ```
 
 ### Inviting the Bot to Discord (for both methods)
-*   Go to your Discord Developer Portal.
-*   Enable the **Guilds**, **Voice States**, and **Message Content** intents for your bot.
-*   Generate an invite link with the `Connect`, `Speak`, and `Send Messages` permissions.
-*   Add the bot to your server and enjoy `/play`!
+* Go to your Discord Developer Portal.
+* Enable the **Guilds**, **Voice States**, and **Message Content** intents for your bot.
+* Generate an invite link with the `Connect`, `Speak`, and `Send Messages` permissions.
+* Add the bot to your server and enjoy `/play`!
 
 ---
 
@@ -191,27 +198,26 @@ This way, you get all the great Playify features without any installation or con
 <a id="troubleshooting"></a>
 ## (｀・ω・´) Troubleshooting
 
-*   **FFmpeg not found**: Ensure it's installed & in your system's PATH. (Docker setup handles this for you!)
-*   **Spotify errors**: Verify your API credentials in the `.env` file.
-*   **Bot offline/unresponsive**: Check your `DISCORD_TOKEN` and bot permissions in the Developer Portal.
-*   **Direct link issues**: Ensure the URL points directly to an audio file and is publicly accessible.
+* **FFmpeg not found**: Ensure it's installed & in your system's PATH. (Docker setup handles this for you!)
+* **Spotify errors**: Verify your API credentials in the `.env` file.
+* **Bot offline/unresponsive**: Check your `DISCORD_TOKEN` and bot permissions in the Developer Portal.
+* **Direct link issues**: Ensure the URL points directly to an audio file and is publicly accessible.
 
 <a id="privacy--data"></a>
 ## (ﾉ◕ヮ◕)ﾉ Privacy & Data
 
-*   **Self-hosted**: All logs are local to your machine. No telemetry is sent.
-*   **Public bot**: Minimal error logs are stored for debugging purposes only. No user data or analytics are collected.
+* **Self-hosted**: All logs are local to your machine. No telemetry is sent.
+* **Public bot**: Minimal error logs are stored for debugging purposes only. No user data or analytics are collected.
 
 <a id="contributing--support"></a>
 ## (ง＾◡＾)ง Contributing & Support
 
-*   Fork the repo, open an issue or pull request—all contributions are welcome!
-*   Star the repository if you enjoy using Playify!
-*   Join our Discord server for help and community discussions:
-    [![Discord](https://img.shields.io/discord/1395755097350213632?label=Discord%20Server&logo=discord)](https://discord.gg/JeH8g6g3cG)
-*   Support the project to help cover hosting costs and encourage development:
-    *   Become a Patron on [Patreon](https://patreon.com/Playify) for special perks and to show your ongoing support!
-    *   [Donate via PayPal](https://www.paypal.com/paypalme/alanmussot1) for a one-time contribution.
+Now that I am back, I am actively reviewing contributions!
+
+* **Found a bug?** Open an Issue—I'm listening!
+* **Want a new feature?** Fork the repo and open a Pull Request. All contributions are welcome!
+* **Star the repository** if you enjoy using Playify!
+    * [Donate via PayPal](https://www.paypal.com/paypalme/alanmussot1) for a one-time contribution.
 
 <a id="license"></a>
 ## (＾ω＾) License
