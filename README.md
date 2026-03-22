@@ -9,7 +9,6 @@
 <p align="center">
   <img src="https://img.shields.io/github/license/alan7383/playify.svg" alt="GitHub license" />
   <img src="https://img.shields.io/badge/python-3.9+-blue.svg" alt="Python 3.9+" />
-  <a href="https://discord.gg/JeH8g6g3cG"><img src="https://img.shields.io/discord/1395755097350213632?label=Discord%20Server&logo=discord" alt="Discord Server" /></a>
 </p>
 
 <div align="center">
@@ -34,7 +33,7 @@
 * [Command Reference](#command-reference)
 * [Troubleshooting](#troubleshooting)
 * [Privacy & Data](#privacy--data)
-* [Contributing & Support](#contributing--support)
+* [Contributing](#contributing)
 * [License](#license)
 
 ---
@@ -124,7 +123,7 @@ This is the easiest way to get the bot running.
 **Requirements:**
 * Python 3.9+
 * FFmpeg **6.1.1** installed & in your system's PATH  
-  ⬇ [Direct download (version recommandée)](https://www.videohelp.com/software?d=ffmpeg-6.1.1-full_build.7z)
+  ⬇ [Direct download (recommended version)](https://www.videohelp.com/software?d=ffmpeg-6.1.1-full_build.7z)
 * Git
 
 **Steps:**
@@ -196,7 +195,6 @@ To use Playify, please **self-host** it using the [Windows App](#easy-setup) or 
 | `/reconnect` | Refresh the voice connection to fix lag without losing your place. |
 | `/status` | Show the bot's detailed performance and resource usage. |
 | `/kaomoji` | Toggle cute kaomoji responses. `(ADMIN)` |
-| `/discord` | Get an invite to the official support server. |
 
 <a id="troubleshooting"></a>
 ## (｀・ω・´) Troubleshooting
@@ -212,19 +210,14 @@ To use Playify, please **self-host** it using the [Windows App](#easy-setup) or 
 
 * **Self-hosted**: All logs are local to your machine. No telemetry is sent.
 
-<a id="contributing--support"></a>
-## (ง＾◡＾)ง Contributing & Support
+<a id="contributing"></a>
+## (ง＾◡＾)ง Contributing
 
 Now that I am back, I am actively reviewing contributions!
 
 * **Found a bug?** Open an Issue—I'm listening!
 * **Want a new feature?** Fork the repo and open a Pull Request. All contributions are welcome!
 * **Star the repository** if you enjoy using Playify!
-* Join our Discord server for help and community discussions:
-    [![Discord](https://img.shields.io/discord/1395755097350213632?label=Discord%20Server&logo=discord)](https://discord.gg/JeH8g6g3cG)
-* Support the project to help cover hosting costs and encourage development:
-    * Become a Patron on [Patreon](https://patreon.com/Playify) for special perks and to show your ongoing support!
-    * [Donate via PayPal](https://www.paypal.com/paypalme/alanmussot1) for a one-time contribution.
 
 <a id="license"></a>
 ## (＾ω＾) License
