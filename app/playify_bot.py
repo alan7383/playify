@@ -2203,7 +2203,7 @@ def run_bot(status_queue, log_queue, command_queue):
                 ))
             
             super().__init__(
-                placeholder=get_messages("jump_to_placeholder", guild_id),
+                placeholder=get_messages("jumpto.placeholder", guild_id),
                 min_values=1, max_values=1, options=options
             )
 
@@ -2628,11 +2628,11 @@ def run_bot(status_queue, log_queue, command_queue):
                 description = "The bot is not connected to a voice channel.\nJoin a voice channel and click the button below."
                 if is_kawaii:
                     description = "I'm not in a voice channel... (｡•́︿•̀｡)\nJoin one and click the button to invite me!~"
-                embed = Embed(title=get_messages("controller_title", guild_id), description=description, color=0x36393F)
+                embed = Embed(title=get_messages("controller.title", guild_id), description=description, color=0x36393F)
             else: # Connected but waiting
                 embed = Embed(
-                    title=get_messages("controller_title", guild_id),
-                    description=get_messages("controller_idle_description", guild_id),
+                    title=get_messages("controller.title", guild_id),
+                    description=get_messages("controller.idle.description", guild_id),
                     color=0x36393F
                 )
             embed.set_image(url="https://i.imgur.com/vDusBWD.png")
@@ -2678,7 +2678,7 @@ def run_bot(status_queue, log_queue, command_queue):
                     track.update(hydrated_map[track['url']])
                     track['hydrated'] = True
 
-        next_song_text = get_messages("controller_nothing_next", guild_id)
+        next_song_text = get_messages("controller.nothing_next.title", guild_id)
         if tracks_to_display:
             next_song = tracks_to_display[0]
             display_info = get_track_display_info(next_song)
@@ -2715,18 +2715,18 @@ def run_bot(status_queue, log_queue, command_queue):
                 description_lines.append(line)
                 current_length += len(line)
         elif len(tracks_to_display) == 1:
-            description_lines.append(get_messages("controller_no_other_songs", guild_id))
+            description_lines.append(get_messages("controller.no_other_songs.title", guild_id))
         else:
-            description_lines.append(get_messages("controller_queue_is_empty", guild_id))
+            description_lines.append(get_messages("controller.queue_empty.title", guild_id))
         
         description = "\n".join(reversed(description_lines))
 
-        embed = Embed(title=get_messages("controller_title", guild_id), description=description, color=0xB5EAD7 if is_kawaii else discord.Color.blue())
-        embed.add_field(name=get_messages("controller_next_up_field", guild_id), value=next_song_text, inline=False)
+        embed = Embed(title=get_messages("controller.title", guild_id), description=description, color=0xB5EAD7 if is_kawaii else discord.Color.blue())
+        embed.add_field(name=get_messages("controller.next_up.title", guild_id), value=next_song_text, inline=False)
         
         now_playing_title_display = f"**[{title}]({info.get('webpage_url', info.get('url', '#'))})**" if info.get('source_type') != 'file' else f"💿 `{title}`"
         now_playing_value = f"{now_playing_title_display}\n> 🎤 **{artist}**\n\nRequested by: {requester.mention}\nConnected in: 🔊 | {vc.channel.name}"
-        embed.add_field(name=get_messages("controller_now_playing_field", guild_id), value=now_playing_value, inline=False)
+        embed.add_field(name=get_messages("controller.now_playing.title", guild_id), value=now_playing_value, inline=False)
         
         if thumbnail: embed.set_thumbnail(url=thumbnail)
 
@@ -2866,10 +2866,10 @@ def run_bot(status_queue, log_queue, command_queue):
         def __init__(self, view, guild_id):
             self.view = view
             self.music_player = get_player(guild_id)
-            super().__init__(title=get_messages("seek_modal_title", guild_id))
+            super().__init__(title=get_messages("seek.modal_title", guild_id))
             
             self.timestamp_input = discord.ui.TextInput(
-                label=get_messages("seek_modal_label", guild_id),
+                label=get_messages("seek.modal.label", guild_id),
                 placeholder="e.g., 1:23 or 45",
                 required=True
             )
@@ -2878,7 +2878,7 @@ def run_bot(status_queue, log_queue, command_queue):
         async def on_submit(self, interaction: discord.Interaction):
             target_seconds = parse_time(self.timestamp_input.value)
             if target_seconds is None:
-                await interaction.response.send_message(get_messages("seek_fail_invalid_time", self.view.guild_id), ephemeral=True, silent=SILENT_MESSAGES)
+                await interaction.response.send_message(get_messages("seek.fail_invalid_time", self.view.guild_id), ephemeral=True, silent=SILENT_MESSAGES)
                 return
 
             self.music_player.is_seeking = True
@@ -2902,9 +2902,9 @@ def run_bot(status_queue, log_queue, command_queue):
             self.update_task = None
             
             # Apply button labels
-            self.rewind_button.label = get_messages("rewind_button_label", self.guild_id)
-            self.jump_button.label = get_messages("jump_to_button_label", self.guild_id)
-            self.forward_button.label = get_messages("fastforward_button_label", self.guild_id)
+            self.rewind_button.label = get_messages("seek.button.rewind", self.guild_id)
+            self.jump_button.label = get_messages("seek.button.jump_to", self.guild_id)
+            self.forward_button.label = get_messages("seek.button.forward", self.guild_id)
 
         async def start_update_task(self):
             """Starts the background task to update the embed."""
@@ -2956,11 +2956,11 @@ def run_bot(status_queue, log_queue, command_queue):
             time_display = f"**{format_duration(current_pos)} / {format_duration(total_duration)}**"
 
             embed = Embed(
-                title=get_messages("seek_interface_title", self.guild_id),
+                title=get_messages("seek.interface_title", self.guild_id),
                 description=f"**{title}**\n\n{progress_bar} {time_display}",
                 color=0xB5EAD7 if self.is_kawaii else discord.Color.blue()
             )
-            embed.set_footer(text=get_messages("seek_interface_footer", self.guild_id))
+            embed.set_footer(text=get_messages("seek.interface_footer", self.guild_id))
             
             # If it's a response to a button interaction
             if interaction and not interaction.response.is_done():
@@ -3020,7 +3020,7 @@ def run_bot(status_queue, log_queue, command_queue):
                 ))
 
             super().__init__(
-                placeholder=get_messages("search_placeholder", guild_id),
+                placeholder=get_messages("search.placeholder", guild_id),
                 min_values=1,
                 max_values=1,
                 options=options
@@ -3035,7 +3035,7 @@ def run_bot(status_queue, log_queue, command_queue):
             selected_url = self.values[0]
             
             self.disabled = True
-            self.placeholder = get_messages("search_selection_made", guild_id)
+            self.placeholder = get_messages("search.selection_made", guild_id)
             await interaction.response.edit_message(view=self.view)
 
             try:
@@ -3164,7 +3164,7 @@ def run_bot(status_queue, log_queue, command_queue):
                 song = await loop.run_in_executor(None, lambda: genius.search_song(new_query))
 
                 if not song:
-                    fail_message = get_messages("lyrics_not_found_description", self.guild_id).format(query=new_query)
+                    fail_message = get_messages("lyrics.error.not_found.description", self.guild_id).format(query=new_query)
                     await interaction.followup.send(fail_message.split('\n')[0], silent=SILENT_MESSAGES, ephemeral=True)
                     return
 
@@ -3210,7 +3210,7 @@ def run_bot(status_queue, log_queue, command_queue):
             self.suggested_query = suggested_query
 
             # We get the correct label for the button
-            button_label = get_messages("lyrics_refine_button", guild_id)
+            button_label = get_messages("lyrics.refine_button", guild_id)
 
             # We access the button (created by the decorator) and change its label
             self.retry_button.label = button_label
@@ -3258,14 +3258,14 @@ def run_bot(status_queue, log_queue, command_queue):
                 logger.error(f"Error during karaoke retry search: {e}")
 
             if not lrc:
-                fail_message = get_messages("karaoke_retry_fail", self.guild_id).format(query=new_query)
+                fail_message = get_messages("karaoke.retry.fail", self.guild_id).format(query=new_query)
                 await interaction.followup.send(fail_message, silent=SILENT_MESSAGES, ephemeral=True)
                 return
 
             lyrics_lines = [{'time': int(m.group(1))*60000 + int(m.group(2))*1000 + int(m.group(3)), 'text': m.group(4).strip()} for line in lrc.splitlines() if (m := re.match(r'\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)', line))]
 
             if not lyrics_lines:
-                fail_message = get_messages("karaoke_retry_fail", self.guild_id).format(query=new_query)
+                fail_message = get_messages("karaoke.retry.fail", self.guild_id).format(query=new_query)
                 await interaction.followup.send(fail_message, silent=SILENT_MESSAGES, ephemeral=True)
                 return
 
@@ -3285,7 +3285,7 @@ def run_bot(status_queue, log_queue, command_queue):
             self.music_player.lyrics_task = asyncio.create_task(update_karaoke_task(self.guild_id))
 
             # Notify the user who clicked the button that it worked
-            success_message = get_messages("karaoke_retry_success", self.guild_id)
+            success_message = get_messages("karaoke.retry.success", self.guild_id)
             await interaction.followup.send(success_message, silent=SILENT_MESSAGES, ephemeral=True)
 
     class RefineLyricsModal(discord.ui.Modal, title="Refine Lyrics Search"):
@@ -3365,8 +3365,8 @@ def run_bot(status_queue, log_queue, command_queue):
             self.guild_id = guild_id
 
             # Set button labels from messages
-            self.retry_button.label = get_messages("karaoke_retry_button", self.guild_id)
-            self.genius_fallback_button.label = get_messages("karaoke_genius_fallback_button", self.guild_id)
+            self.retry_button.label = get_messages("karaoke.retry_button", self.guild_id)
+            self.genius_fallback_button.label = get_messages("karaoke.genius_fallback_button", self.guild_id)
 
         @discord.ui.button(style=discord.ButtonStyle.primary)
         async def retry_button(self, interaction: discord.Interaction, button: Button):
@@ -3387,7 +3387,7 @@ def run_bot(status_queue, log_queue, command_queue):
             await interaction.response.defer()
 
             # Fetch standard lyrics
-            fallback_msg = get_messages("lyrics_fallback_warning", self.guild_id)
+            fallback_msg = get_messages("lyrics.fallback_warning", self.guild_id)
             await fetch_and_display_genius_lyrics(self.original_interaction, fallback_message=fallback_msg)
 
     class KaraokeWarningView(View):
@@ -3488,8 +3488,8 @@ def run_bot(status_queue, log_queue, command_queue):
             
             self.message = None
 
-            self.previous_button = Button(label=get_messages("previous_button", self.guild_id), style=ButtonStyle.secondary)
-            self.next_button = Button(label=get_messages("next_button", self.guild_id), style=ButtonStyle.secondary)
+            self.previous_button = Button(label=get_messages("queue_button.previous", self.guild_id), style=ButtonStyle.secondary)
+            self.next_button = Button(label=get_messages("queue_button.next", self.guild_id), style=ButtonStyle.secondary)
 
             self.previous_button.callback = self.previous_button_callback
             self.next_button.callback = self.next_button_callback
@@ -3748,13 +3748,13 @@ def run_bot(status_queue, log_queue, command_queue):
         """Creates and sends the standardized 'YouTube is blocked' embed."""
         guild_id = interaction.guild.id
         embed = Embed(
-            title=get_messages("youtube_blocked_title", guild_id),
-            description=get_messages("youtube_blocked_description", guild_id),
+            title=get_messages("error.youtube_blocked.title", guild_id),
+            description=get_messages("error.youtube_blocked.description", guild_id),
             color=0xFF9AA2 if get_mode(guild_id) else discord.Color.orange()
         )
         embed.add_field(
-            name=get_messages("youtube_blocked_repo_field", guild_id),
-            value=get_messages("youtube_blocked_repo_value", guild_id)
+            name=get_messages("error.youtube_blocked.repo_field", guild_id),
+            value=get_messages("error.youtube_blocked.repo_value", guild_id)
         )
         # Use followup.send because the interaction will always be deferred by the command
         await interaction.followup.send(embed=embed, ephemeral=True, silent=True)
@@ -3919,7 +3919,7 @@ def run_bot(status_queue, log_queue, command_queue):
 
         member = interaction.guild.get_member(interaction.user.id)
         if not member or not member.voice or not member.voice.channel:
-            embed = Embed(description=get_messages("no_voice_channel", guild_id), color=0xFF9AA2 if is_kawaii else discord.Color.red())
+            embed = Embed(description=get_messages("error.no_voice_channel", guild_id), color=0xFF9AA2 if is_kawaii else discord.Color.red())
             if interaction.response.is_done():
                 await interaction.followup.send(embed=embed, ephemeral=True, silent=SILENT_MESSAGES)
             else:
@@ -4005,7 +4005,7 @@ def run_bot(status_queue, log_queue, command_queue):
                     raise e
 
             except Exception as e:
-                embed = Embed(description=get_messages("connection_error", guild_id), color=0xFF9AA2 if is_kawaii else discord.Color.red())
+                embed = Embed(description=get_messages("error.connection", guild_id), color=0xFF9AA2 if is_kawaii else discord.Color.red())
                 if interaction.response.is_done():
                     await interaction.followup.send(embed=embed, ephemeral=True, silent=SILENT_MESSAGES)
                 else:
@@ -4239,8 +4239,8 @@ def run_bot(status_queue, log_queue, command_queue):
 
             if not song:
                 # We retrieve the texts from the `messages` dictionary
-                error_title = get_messages("lyrics_not_found_title", guild_id)
-                error_desc = get_messages("lyrics_not_found_description", guild_id).format(query=precise_query)
+                error_title = get_messages("lyrics.error.not_found.title", guild_id)
+                error_desc = get_messages("lyrics.error.not_found.description", guild_id).format(query=precise_query)
 
                 error_embed = Embed(
                     title=error_title,
@@ -4438,18 +4438,18 @@ def run_bot(status_queue, log_queue, command_queue):
 
         is_kawaii = get_mode(guild_id)
         embed = Embed(
-            title=get_messages("critical_error_title", guild_id),
-            description=get_messages("critical_error_description", guild_id),
+            title=get_messages("error.critical.title", guild_id),
+            description=get_messages("error.critical.description", guild_id),
             color=0xFF9AA2 if is_kawaii else discord.Color.red()
         )
         embed.add_field(
-            name=get_messages("critical_error_report_field", guild_id),
-            value=get_messages("critical_error_report_value", guild_id),
+            name=get_messages("error.critical.report_field", guild_id),
+            value=get_messages("error.critical.report_value", guild_id),
             inline=False
         )
         error_details = f"URL: {music_player.current_url}\nError: {str(error)[:500]}"
         embed.add_field(
-            name=get_messages("critical_error_details_field", guild_id),
+            name=get_messages("error.critical.details_field", guild_id),
             value=f"```\n{error_details}\n```",
             inline=False
         )
@@ -4569,8 +4569,8 @@ def run_bot(status_queue, log_queue, command_queue):
                             try:
                                 if not progress_message and music_player.text_channel:
                                     initial_embed = Embed(
-                                        title=get_messages("autoplay_loading_title", guild_id),
-                                        description=get_messages("autoplay_loading_description", guild_id).format(progress_bar=create_loading_bar(0), processed=0, total='?'),
+                                        title=get_messages("autoplay.loading_title", guild_id),
+                                        description=get_messages("autoplay.loading_description", guild_id).format(progress_bar=create_loading_bar(0), processed=0, total='?'),
                                         color=0xC7CEEA if is_kawaii else discord.Color.blue()
                                     )
                                     progress_message = await music_player.text_channel.send(embed=initial_embed, silent=SILENT_MESSAGES)
@@ -4608,7 +4608,7 @@ def run_bot(status_queue, log_queue, command_queue):
                                         if (i + 1) % 10 == 0 or (i + 1) == total_to_add:
                                             progress = (i + 1) / total_to_add
                                             updated_embed = progress_message.embeds[0]
-                                            updated_embed.description = get_messages("autoplay_loading_description", guild_id).format(progress_bar=create_loading_bar(progress), processed=added_count, total=total_to_add)
+                                            updated_embed.description = get_messages("autoplay.loading_description", guild_id).format(progress_bar=create_loading_bar(progress), processed=added_count, total=total_to_add)
                                             await progress_message.edit(embed=updated_embed)
                                             await asyncio.sleep(0.5)
                             except Exception as e: 
@@ -4617,7 +4617,7 @@ def run_bot(status_queue, log_queue, command_queue):
                                 if progress_message and added_count > 0:
                                     final_embed = progress_message.embeds[0]
                                     final_embed.title = None 
-                                    final_embed.description = get_messages("autoplay_finished_description", guild_id).format(count=added_count)
+                                    final_embed.description = get_messages("autoplay.finished_description", guild_id).format(count=added_count)
                                     final_embed.color = 0xB5EAD7 if is_kawaii else discord.Color.green()
                                     await progress_message.edit(embed=final_embed)
                                 elif progress_message and added_count == 0:
@@ -4644,7 +4644,7 @@ def run_bot(status_queue, log_queue, command_queue):
                         if music_player.text_channel:
                             try:
                                 error_embed = Embed(
-                                    title=get_messages("extraction_error", guild_id),
+                                    title=get_messages("error.extraction", guild_id),
                                     description=f"Could not find a source for: `{failed_title}`.\n*This track will be skipped.*",
                                     color=0xFF9AA2 if is_kawaii else discord.Color.red()
                                 )
@@ -4886,8 +4886,8 @@ def run_bot(status_queue, log_queue, command_queue):
 
             # Now, a SINGLE check handles all failures (not found OR bad format)
             if not lyrics_lines:
-                error_title = get_messages("karaoke_not_found_title", guild_id)
-                error_desc = get_messages("karaoke_not_found_description", guild_id).format(query=f"{clean_title} {artist_name}")
+                error_title = get_messages("karaoke.not_found_title", guild_id)
+                error_desc = get_messages("karaoke.not_found_description", guild_id).format(query=f"{clean_title} {artist_name}")
 
                 error_embed = Embed(
                     title=error_title,
@@ -4917,13 +4917,13 @@ def run_bot(status_queue, log_queue, command_queue):
             await proceed_with_karaoke()
         else:
             warning_embed = Embed(
-                title=get_messages("karaoke_warning_title", guild_id),
-                description=get_messages("karaoke_warning_description", guild_id),
+                title=get_messages("karaoke.warning.title", guild_id),
+                description=get_messages("karaoke.warning.description", guild_id),
                 color=0xFFB6C1 if is_kawaii else discord.Color.orange()
             )
             view = KaraokeWarningView(interaction, karaoke_coro=proceed_with_karaoke)
 
-            button_label = get_messages("karaoke_warning_button", guild_id)
+            button_label = get_messages("karaoke.warning.button", guild_id)
             view.children[0].label = button_label
 
             await interaction.response.send_message(silent=SILENT_MESSAGES,embed=warning_embed, view=view)
@@ -5384,13 +5384,13 @@ def run_bot(status_queue, log_queue, command_queue):
         # Define the helper function to show the YouTube blocked message
         async def show_youtube_blocked_message():
             embed = Embed(
-                title=get_messages("youtube_blocked_title", guild_id),
-                description=get_messages("youtube_blocked_description", guild_id),
+                title=get_messages("error.youtube_blocked.title", guild_id),
+                description=get_messages("error.youtube_blocked.description", guild_id),
                 color=0xFF9AA2 if is_kawaii else discord.Color.orange()
             )
             embed.add_field(
-                name=get_messages("youtube_blocked_repo_field", guild_id),
-                value=get_messages("youtube_blocked_repo_value", guild_id)
+                name=get_messages("error.youtube_blocked.repo_field", guild_id),
+                value=get_messages("error.youtube_blocked.repo_value", guild_id)
             )
             await interaction.followup.send(embed=embed, ephemeral=True, silent=True)
 
@@ -5582,7 +5582,7 @@ def run_bot(status_queue, log_queue, command_queue):
 
         if not music_player.voice_client or not (music_player.voice_client.is_playing() or music_player.voice_client.is_paused()):
             embed = Embed(
-                description=get_messages("no_filter_playback", guild_id),
+                description=get_messages("filter.no_playback", guild_id),
                 color=0xFF9AA2 if is_kawaii else discord.Color.red()
             )
             await interaction.response.send_message(silent=SILENT_MESSAGES,embed=embed, ephemeral=True)
@@ -5591,8 +5591,8 @@ def run_bot(status_queue, log_queue, command_queue):
         # Creates and sends the view with the buttons
         view = FilterView(interaction)
         embed = Embed(
-            title=get_messages("filter_title", guild_id),
-            description=get_messages("filter_description", guild_id),
+            title=get_messages("filter.title", guild_id),
+            description=get_messages("filter.description", guild_id),
             color=0xB5EAD7 if is_kawaii else discord.Color.blue()
         )
 
@@ -5629,7 +5629,7 @@ def run_bot(status_queue, log_queue, command_queue):
             bot.loop.create_task(update_controller(bot, interaction.guild.id))
         else:
             embed = Embed(
-                description=get_messages("no_playback", guild_id),
+                description=get_messages("player.no_playback.title", guild_id),
                 color=0xFF9AA2 if is_kawaii else discord.Color.red()
             )
             # Use followup.send because we deferred
@@ -5719,7 +5719,7 @@ def run_bot(status_queue, log_queue, command_queue):
 
         if not voice_client or not (voice_client.is_playing() or voice_client.is_paused()):
             embed = Embed(
-                description=get_messages("no_song", guild_id),
+                description=get_messages("player.no_song.title", guild_id),
                 color=0xFF9AA2 if is_kawaii else discord.Color.red()
             )
             await interaction.response.send_message(embed=embed, ephemeral=True, silent=SILENT_MESSAGES)
@@ -5776,9 +5776,9 @@ def run_bot(status_queue, log_queue, command_queue):
             # Replaying the current song
             title = music_player.current_info.get("title", "Unknown Title")
             url = music_player.current_info.get("webpage_url", music_player.current_url)
-            description_text = get_messages("replay_success_desc", guild_id).format(title=title, url=url)
+            description_text = get_messages("player.replay.success_desc", guild_id).format(title=title, url=url)
             embed = Embed(
-                title=get_messages("replay_success_title", guild_id),
+                title=get_messages("player.replay.success_title", guild_id),
                 description=description_text,
                 color=0xC7CEEA if is_kawaii else discord.Color.blue()
             )
@@ -5810,17 +5810,17 @@ def run_bot(status_queue, log_queue, command_queue):
                 description=description_text,
                 color=0xE2F0CB if is_kawaii else discord.Color.blue()
             )
-            embed.set_author(name=get_messages("skip_confirmation", guild_id))
+            embed.set_author(name=get_messages("player.skip.confirmation", guild_id))
             
             if hydrated_next_info.get("thumbnail"):
                 embed.set_thumbnail(url=hydrated_next_info["thumbnail"])
         else:
             # Queue is now empty
             embed = Embed(
-                title=get_messages("skip_confirmation", guild_id),
+                title=get_messages("player.skip.confirmation", guild_id),
                 color=0xE2F0CB if is_kawaii else discord.Color.blue()
             )
-            embed.set_footer(text=get_messages("skip_queue_empty", guild_id))
+            embed.set_footer(text=get_messages("player.skip.queue_empty", guild_id))
 
         await interaction.followup.send(silent=SILENT_MESSAGES, embed=embed)
         
@@ -5899,7 +5899,7 @@ def run_bot(status_queue, log_queue, command_queue):
             embed = Embed(description=get_messages("stop", guild_id), color=0xFF9AA2 if is_kawaii else discord.Color.red())
             await interaction.response.send_message(silent=SILENT_MESSAGES, embed=embed)
         else:
-            embed = Embed(description=get_messages("not_connected", guild_id), color=0xFF9AA2 if is_kawaii else discord.Color.red())
+            embed = Embed(description=get_messages("player.not_connected", guild_id), color=0xFF9AA2 if is_kawaii else discord.Color.red())
             await interaction.response.send_message(silent=SILENT_MESSAGES, embed=embed, ephemeral=True)
 
     # /shuffle command
@@ -6112,8 +6112,8 @@ def run_bot(status_queue, log_queue, command_queue):
 
         # Create the embed using messages from the dictionary
         embed = Embed(
-            title=get_messages("support_title", guild_id),
-            description=get_messages("support_description", guild_id),
+            title=get_messages("support.title", guild_id),
+            description=get_messages("support.description", guild_id),
             color=0xFFC300 if not is_kawaii else 0xFFB6C1 # Gold for normal, Pink for kawaii
         )
 
@@ -6124,12 +6124,12 @@ def run_bot(status_queue, log_queue, command_queue):
 
         # Add the fields for the links
         embed.add_field(
-            name=get_messages("support_patreon_title", guild_id),
+            name=get_messages("support.patreon_title", guild_id),
             value=f"[Support on Patreon]({patreon_link})",
             inline=True
         )
         embed.add_field(
-            name=get_messages("support_paypal_title", guild_id),
+            name=get_messages("support.paypal_title", guild_id),
             value=f"[Donate via PayPal]({paypal_link})",
             inline=True
         )
@@ -6138,12 +6138,12 @@ def run_bot(status_queue, log_queue, command_queue):
         embed.add_field(name="\u200b", value="\u200b", inline=False)
 
         embed.add_field(
-            name=get_messages("support_discord_title", guild_id),
+            name=get_messages("support.discord_title", guild_id),
             value=f"[Join the Discord Server]({discord_server_link})",
             inline=True
         )
         embed.add_field(
-            name=get_messages("support_contact_title", guild_id),
+            name=get_messages("support.contact_title", guild_id),
             value=f"You can reach me on Discord at:\n**{discord_username}**",
             inline=True
         )
@@ -6183,8 +6183,8 @@ def run_bot(status_queue, log_queue, command_queue):
             music_player.radio_playlist.clear()
                     
             embed = Embed(
-                title=get_messages("24_7_off_title", guild_id),
-                description=get_messages("24_7_off_desc", guild_id),
+                title=get_messages(T_7.off_title", guild_id),
+                description=get_messages(T_7.off_desc", guild_id),
                 color=0xFF9AA2 if is_kawaii else discord.Color.red()
             )
             await interaction.followup.send(embed=embed, silent=SILENT_MESSAGES)
@@ -6220,15 +6220,15 @@ def run_bot(status_queue, log_queue, command_queue):
         if mode == "auto":
             music_player.autoplay_enabled = True
             embed = Embed(
-                title=get_messages("24_7_auto_title", guild_id),
-                description=get_messages("24_7_auto_desc", guild_id),
+                title=get_messages(T_7.auto_title", guild_id),
+                description=get_messages(T_7.auto_desc", guild_id),
                 color=0xB5EAD7 if is_kawaii else discord.Color.green()
             )
         else: # mode == "normal"
             music_player.autoplay_enabled = False
             embed = Embed(
-                title=get_messages("24_7_normal_title", guild_id),
-                description=get_messages("24_7_normal_desc", guild_id),
+                title=get_messages(T_7.normal_title", guild_id),
+                description=get_messages(T_7.normal_desc", guild_id),
                 color=0xB5EAD7 if is_kawaii else discord.Color.green()
             )
         
@@ -6263,7 +6263,7 @@ def run_bot(status_queue, log_queue, command_queue):
         # not IF it's currently making sound. This is the key fix for the zombie state.
         if not music_player.current_info:
             embed = Embed(
-                description=get_messages("reconnect_not_playing", guild_id),
+                description=get_messages("player.reconnect.not_playing", guild_id),
                 color=0xFF9AA2 if is_kawaii else discord.Color.red()
             )
             await interaction.response.send_message(embed=embed, ephemeral=True, silent=SILENT_MESSAGES)
@@ -6311,7 +6311,7 @@ def run_bot(status_queue, log_queue, command_queue):
             music_player.current_task = bot.loop.create_task(play_audio(guild_id, seek_time=current_timestamp, is_a_loop=True))
             
             embed = Embed(
-                description=get_messages("reconnect_success", guild_id),
+                description=get_messages("player.reconnect.success", guild_id),
                 color=0xB5EAD7 if is_kawaii else discord.Color.green()
             )
             await interaction.followup.send(embed=embed, silent=SILENT_MESSAGES)
@@ -6417,7 +6417,7 @@ def run_bot(status_queue, log_queue, command_queue):
             
             if not search_results:
                 embed = Embed(
-                    description=get_messages("search_no_results", guild_id).format(query=query),
+                    description=get_messages("search.no_results", guild_id).format(query=query),
                     color=0xFF9AA2 if is_kawaii else discord.Color.red()
                 )
                 await interaction.followup.send(embed=embed, silent=SILENT_MESSAGES, ephemeral=True)
@@ -6425,8 +6425,8 @@ def run_bot(status_queue, log_queue, command_queue):
 
             view = SearchView(search_results, guild_id)
             embed = Embed(
-                title=get_messages("search_results_title", guild_id),
-                description=get_messages("search_results_description", guild_id),
+                title=get_messages("search.results_title", guild_id),
+                description=get_messages("search.results_description", guild_id),
                 color=0xC7CEEA if is_kawaii else discord.Color.blue()
             )
             
@@ -6446,11 +6446,11 @@ def run_bot(status_queue, log_queue, command_queue):
         music_player = get_player(guild_id)
 
         if not music_player.voice_client or not (music_player.voice_client.is_playing() or music_player.voice_client.is_paused()):
-            await interaction.response.send_message(get_messages("no_playback", guild_id), ephemeral=True, silent=SILENT_MESSAGES)
+            await interaction.response.send_message(get_messages("player.no_playback.title", guild_id), ephemeral=True, silent=SILENT_MESSAGES)
             return
 
         if music_player.is_current_live:
-            await interaction.response.send_message(get_messages("seek_fail_live", guild_id), ephemeral=True, silent=SILENT_MESSAGES)
+            await interaction.response.send_message(get_messages("seek.fail_live", guild_id), ephemeral=True, silent=SILENT_MESSAGES)
             return
         
         # Create the view and the initial embed
@@ -6458,7 +6458,7 @@ def run_bot(status_queue, log_queue, command_queue):
         
         # Create the initial embed (will be updated by the view)
         initial_embed = Embed(
-            title=get_messages("seek_interface_title", guild_id),
+            title=get_messages("seek.interface_title", guild_id),
             description="Loading player...",
             color=0xB5EAD7 if get_mode(guild_id) else discord.Color.blue()
         )
@@ -6574,7 +6574,7 @@ def run_bot(status_queue, log_queue, command_queue):
                 logger.info(f"Command channel allowlist has been RESET for guild {guild_id}.")
             
             embed = discord.Embed(
-                description=get_messages("allowlist_reset_success", guild_id),
+                description=get_messages("setup.allowlist.reset_success", guild_id),
                 color=0xB5EAD7 if is_kawaii else discord.Color.green()
             )
             await interaction.response.send_message(embed=embed, ephemeral=True, silent=True)
@@ -6591,7 +6591,7 @@ def run_bot(status_queue, log_queue, command_queue):
             logger.info(f"Command channel allowlist for guild {guild_id} set to: {allowed_ids}")
 
             embed = discord.Embed(
-                description=get_messages("allowlist_set_success", guild_id).format(channels=channel_mentions),
+                description=get_messages("setup.allowlist.set_success", guild_id).format(channels=channel_mentions),
                 color=0xB5EAD7 if is_kawaii else discord.Color.green()
             )
             await interaction.response.send_message(embed=embed, ephemeral=True, silent=True)
@@ -6599,7 +6599,7 @@ def run_bot(status_queue, log_queue, command_queue):
 
         # Case 3: Invalid arguments
         embed = discord.Embed(
-            description=get_messages("allowlist_invalid_args", guild_id),
+            description=get_messages("setup.allowlist.invalid_args", guild_id),
             color=0xFF9AA2 if is_kawaii else discord.Color.orange()
         )
         await interaction.response.send_message(embed=embed, ephemeral=True, silent=True)
@@ -6670,8 +6670,8 @@ def run_bot(status_queue, log_queue, command_queue):
         await view.update_view()
         
         embed = Embed(
-            title=get_messages("jump_to_title", guild_id),
-            description=get_messages("jump_to_description", guild_id),
+            title=get_messages("jumpto.title", guild_id),
+            description=get_messages("jumpto.description", guild_id),
             color=0xC7CEEA if is_kawaii else discord.Color.blue()
         )
         
@@ -6834,17 +6834,17 @@ def run_bot(status_queue, log_queue, command_queue):
         # Final block if no condition is met
         is_kawaii = get_mode(guild_id)
         channel_mentions = ", ".join([f"<#{ch_id}>" for ch_id in allowed_ids])
-        description_text = get_messages("command_restricted_description", guild_id).format(
+        description_text = get_messages("command.restricted_description", guild_id).format(
             bot_name=interaction.client.user.name
         )
 
         embed = discord.Embed(
-            title=get_messages("command_restricted_title", guild_id),
+            title=get_messages("command.restricted_title", guild_id),
             description=description_text,
             color=0xFF9AA2 if is_kawaii else discord.Color.red()
         )
         embed.add_field(
-            name=get_messages("command_allowed_channels_field", guild_id),
+            name=get_messages("command.allowed_channels_field", guild_id),
             value=channel_mentions
         )
         

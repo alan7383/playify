@@ -232,6 +232,7 @@ karaoke:
     acknowledged_button: "Acknowledged!"
   retry:
     success: "Lyrics found! Starting karaoke..."
+    fail: "Still no synced lyrics found. Sorry!"
   refine_modal:
     title: "Refine Synced Lyrics Search"
     label: "Song Title & Artist"
