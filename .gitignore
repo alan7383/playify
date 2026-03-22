@@ -6,3 +6,4 @@ __pycache__/
 *.pyd
 .DS_Store
 .venv"ffmpeg.exe" 
+ffmpeg.exe 
