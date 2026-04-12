@@ -7,7 +7,13 @@ echo       Playify - Discord Music Bot
 echo ========================================
 echo.
 
-echo [1/3] Verifying Python installation...
+if exist ".env" goto run_bot
+
+echo [SETUP] Welcome! It looks like it's your first time (or you deleted your .env).
+echo [SETUP] Let's configure your bot.
+echo.
+
+echo Verifying Python installation...
 python --version >nul 2>&1
 if %errorlevel% neq 0 (
     echo Python was not found! Do not worry, installing it for you automatically...
@@ -27,14 +33,33 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
-echo [2/3] Installing/Updating requirements...
+echo.
+echo Now, we need your Discord and Spotify tokens!
+echo You only need to do this once.
+echo (Hint: Right-click to paste text into this window)
+echo.
+
+set /p DISCORD="Paste your Discord Bot Token: "
+set /p SPOTIFY_ID="Paste your Spotify Client ID: "
+set /p SPOTIFY_SECRET="Paste your Spotify Client Secret: "
+
+echo DISCORD_TOKEN=%DISCORD%> .env
+echo SPOTIFY_CLIENT_ID=%SPOTIFY_ID%>> .env
+echo SPOTIFY_CLIENT_SECRET=%SPOTIFY_SECRET%>> .env
+
+echo.
+echo Secrets saved to the .env file successfully!
+echo.
+echo Installing requirements (this may take a few minutes)...
 pip install -r requirements.txt
 echo Installing playwright browsers...
 python -m playwright install
 
 echo.
-echo [3/3] Starting the bot...
+echo Setup Complete! You won't have to do this again.
 echo.
+
+:run_bot
 python playify.py
 
 echo.
