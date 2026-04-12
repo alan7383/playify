@@ -33,6 +33,28 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
+echo [1.5/3] Verifying FFmpeg...
+ffmpeg -version >nul 2>&1
+if %errorlevel% neq 0 (
+    if not exist "ffmpeg.exe" (
+        echo FFmpeg was not found! Downloading it now to enable music playback...
+        echo This is a one-time setup step.
+        echo Downloading FFmpeg 6.1.1...
+        curl -# -L -o ffmpeg.7z "https://www.videohelp.com/download/ffmpeg-6.1.1-full_build.7z?r=zndlFgBq"
+        echo Extracting FFmpeg... (this might take a minute)
+        tar -xf ffmpeg.7z
+        echo Moving ffmpeg.exe to the bot folder...
+        for /r %%i in (ffmpeg.exe) do move "%%i" . >nul
+        echo Cleaning up temporary files...
+        del ffmpeg.7z
+        for /d %%d in (ffmpeg-6.1.1-*) do rd /s /q "%%d"
+        echo.
+        echo FFmpeg installed successfully!
+        echo.
+    )
+)
+
+echo [2/3] Installing/Updating requirements...
 echo.
 echo Now, we need your Discord and Spotify tokens!
 echo You only need to do this once.
