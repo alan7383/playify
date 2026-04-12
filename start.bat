@@ -39,13 +39,15 @@ echo You only need to do this once.
 echo (Hint: Right-click to paste text into this window)
 echo.
 
-set /p DISCORD="Paste your Discord Bot Token: "
-set /p SPOTIFY_ID="Paste your Spotify Client ID: "
-set /p SPOTIFY_SECRET="Paste your Spotify Client Secret: "
+set /p DISCORD="Paste your Discord Bot Token (Required): "
+set /p SPOTIFY_ID="Paste your Spotify Client ID (Optional, press Enter to skip): "
+set /p SPOTIFY_SECRET="Paste your Spotify Client Secret (Optional, press Enter to skip): "
+set /p GENIUS_TOKEN="Paste your Genius API Token for lyrics (Optional, press Enter to skip): "
 
-echo DISCORD_TOKEN=%DISCORD%> .env
-echo SPOTIFY_CLIENT_ID=%SPOTIFY_ID%>> .env
-echo SPOTIFY_CLIENT_SECRET=%SPOTIFY_SECRET%>> .env
+> .env echo DISCORD_TOKEN=%DISCORD%
+>> .env echo SPOTIFY_CLIENT_ID=%SPOTIFY_ID%
+>> .env echo SPOTIFY_CLIENT_SECRET=%SPOTIFY_SECRET%
+>> .env echo GENIUS_TOKEN=%GENIUS_TOKEN%
 
 echo.
 echo Secrets saved to the .env file successfully!
