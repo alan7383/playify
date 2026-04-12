@@ -44,10 +44,12 @@ if %errorlevel% neq 0 (
         echo Extracting FFmpeg... (this might take a minute)
         tar -xf ffmpeg.7z
         echo Moving ffmpeg.exe to the bot folder...
-        for /r %%i in (ffmpeg.exe) do move "%%i" . >nul
+        for /r %%i in (ffmpeg.exe) do (
+            if not "%%~dpi"=="%~dp0" move "%%i" . >nul 2>&1
+        )
         echo Cleaning up temporary files...
-        del ffmpeg.7z
-        for /d %%d in (ffmpeg-6.1.1-*) do rd /s /q "%%d"
+        del ffmpeg.7z >nul 2>&1
+        for /d %%d in (ffmpeg-6.1.1-*) do rd /s /q "%%d" >nul 2>&1
         echo.
         echo FFmpeg installed successfully!
         echo.
