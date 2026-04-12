@@ -1,9 +1,9 @@
 # Core Discord library and voice dependency
-git+https://github.com/Rapptz/discord.py
+discord.py
 PyNaCl
 
 # Audio/Video downloading
-git+https://github.com/yt-dlp/yt-dlp.git
+yt-dlp
 
 # Music platform APIs and scrapers
 spotipy
