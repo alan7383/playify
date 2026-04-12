@@ -24,7 +24,6 @@
 
 ## Table of Contents
 
-* [Easy Windows Setup](#easy-setup)
 * [What is Playify?](#what-is-playify)
 * [Spotify Support](#spotify-support)
 * [Key Features](#key-features)
@@ -39,17 +38,7 @@
 ---
 
 
-<a id="easy-setup"></a>
-## (つ≧▽≦)つ Easy Windows Setup (just once, promise)
-
-Too lazy to mess with Docker, Python, or configs? (｡•́︿•̀｡)  
-No worries — I made a Windows app that sets up everything for you in one go!  
-You’ll just need to enter your **Discord token** + **Spotify / Genius API keys** once, and you’re done forever!
-
-**Get it here:** 📄 [Instructions & info](https://alan7383.github.io/playify/self-host.html)  
-⬇ [Direct download](https://github.com/alan7383/playify/releases/download/1.5.1/Playify_Setup_v1.5.1.exe)
-
----
+> **Note:** The Playify Windows Edition (standalone setup) has been discontinued and is no longer updated or supported. Please use the Docker or Manual methods below to run Playify.
 
 <a id="what-is-playify"></a>
 ## ＼(＾O＾)／ What is Playify?
@@ -163,7 +152,7 @@ This is the easiest way to get the bot running.
 
 Unfortunately, due to stricter limitations from Google and YouTube, the public instance was detected as a bot and blocked. Maintaining a public instance that serves thousands of servers became impossible without hitting these bans constantly.
 
-To use Playify, please **self-host** it using the [Windows App](#easy-setup) or [Docker](#installation) methods above! It's much safer and ensures your music won't be interrupted.
+To use Playify, please **self-host** it using the [Docker](#installation) or manual methods above! It's much safer and ensures your music won't be interrupted.
 
 ---
 
