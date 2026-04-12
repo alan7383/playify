@@ -109,6 +109,8 @@ This is the easiest way to get the bot running.
 
 ### (🛠️) Method 2: Manual Setup
 
+> **Windows User?** Don't know anything about code? Read the [Absolute Beginner's Windows Guide](docs/windows_beginner_guide.md) created just for you! It includes a 1-click startup script.
+
 **Requirements:**
 * Python 3.9+
 * FFmpeg **6.1.1** installed & in your system's PATH  
