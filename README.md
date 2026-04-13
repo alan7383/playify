@@ -38,7 +38,6 @@
 ---
 
 
-> **Note:** The Playify Windows Edition (standalone setup) has been discontinued and is no longer updated or supported. Please use the Docker or Manual methods below to run Playify.
 
 <a id="what-is-playify"></a>
 ## ＼(＾O＾)／ What is Playify?
