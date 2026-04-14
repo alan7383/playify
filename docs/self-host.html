@@ -356,8 +356,34 @@
       font-size: 0.95rem; color: var(--accent);
       line-height: 1.8; overflow-x: auto;
       position: relative;
+      padding-right: 56px;
     }
     .code-block .comment { color: rgba(255, 255, 255, 0.3); }
+    .copy-btn {
+      position: absolute;
+      top: 10px; right: 10px;
+      background: rgba(138, 43, 226, 0.15);
+      border: 1px solid rgba(138, 43, 226, 0.25);
+      border-radius: 8px;
+      color: var(--accent);
+      cursor: pointer;
+      width: 34px; height: 34px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem;
+      transition: all 0.25s ease;
+      outline: none;
+    }
+    .copy-btn:hover {
+      background: rgba(138, 43, 226, 0.3);
+      border-color: rgba(138, 43, 226, 0.5);
+      color: #fff;
+      transform: scale(1.08);
+    }
+    .copy-btn.copied {
+      background: rgba(40, 167, 69, 0.2);
+      border-color: rgba(40, 167, 69, 0.4);
+      color: #28a745;
+    }
 
     /* === Comparison Section === */
     .comparison-grid {
@@ -767,18 +793,6 @@
 
     <!-- Method Comparison Cards -->
     <div class="comparison-grid fade-in delay-2">
-      <div class="comparison-card" data-method="windows">
-        <div class="comparison-icon"><i class="fab fa-windows"></i></div>
-        <h3>Windows App</h3>
-        <p class="card-desc">One-click installer. No technical knowledge needed.</p>
-        <ul class="comparison-features">
-          <li><i class="fas fa-check"></i><span>Automatic Python & FFmpeg install</span></li>
-          <li><i class="fas fa-check"></i><span>Built-in guided configuration</span></li>
-          <li><i class="fas fa-check"></i><span>Auto-start with Windows</span></li>
-          <li><i class="fas fa-check"></i><span>One-click updates</span></li>
-          <li><i class="fas fa-xmark"></i><span>Windows only</span></li>
-        </ul>
-      </div>
       <div class="comparison-card highlighted" data-method="docker">
         <div class="comparison-badge">Recommended</div>
         <div class="comparison-icon"><i class="fab fa-docker"></i></div>
@@ -815,11 +829,7 @@
     </p>
 
     <div class="method-tabs fade-in delay-2">
-      <button class="method-tab active" data-target="panel-windows">
-        <i class="fab fa-windows"></i> Windows App
-        <span class="tab-badge">Easiest</span>
-      </button>
-      <button class="method-tab" data-target="panel-docker">
+      <button class="method-tab active" data-target="panel-docker">
         <i class="fab fa-docker"></i> Docker
       </button>
       <button class="method-tab" data-target="panel-manual">
@@ -827,42 +837,9 @@
       </button>
     </div>
 
-    <!-- Windows Panel -->
-    <div id="panel-windows" class="method-panel active fade-in delay-3">
-      <div class="timeline">
-        <div class="timeline-item">
-          <div class="timeline-dot">1</div>
-          <div class="timeline-content">
-            <h3>Download the Installer</h3>
-            <p>Grab the latest <a href="https://github.com/alan7383/playify/releases/latest" target="_blank">Playify_Setup.exe</a> from GitHub Releases. It's a standard, safe Windows installer.</p>
-          </div>
-        </div>
-        <div class="timeline-item">
-          <div class="timeline-dot">2</div>
-          <div class="timeline-content">
-            <h3>Run the Setup Wizard</h3>
-            <p>Launch the installer. It will automatically install Python, FFmpeg, and all dependencies, then open the configuration wizard.</p>
-          </div>
-        </div>
-        <div class="timeline-item">
-          <div class="timeline-dot">3</div>
-          <div class="timeline-content">
-            <h3>Enter Your API Keys</h3>
-            <p>The app guides you through getting your Discord bot token, Spotify API keys, and optional Genius token. Video tutorials are included right in the app.</p>
-          </div>
-        </div>
-        <div class="timeline-item">
-          <div class="timeline-dot">4</div>
-          <div class="timeline-content">
-            <h3>Invite & Play</h3>
-            <p>The app generates your unique invite link. Add your bot to your server, type <span class="code-inline">/play</span>, and enjoy! 🎵</p>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- Docker Panel -->
-    <div id="panel-docker" class="method-panel">
+    <div id="panel-docker" class="method-panel active">
       <div class="timeline">
         <div class="timeline-item">
           <div class="timeline-dot">1</div>
@@ -870,6 +847,7 @@
             <h3>Clone the Repository</h3>
             <p>Open your terminal and clone the project:</p>
             <div class="code-block">
+              <button class="copy-btn" title="Copy"><i class="fas fa-copy"></i></button>
               git clone https://github.com/alan7383/playify.git<br>
               cd playify
             </div>
@@ -881,6 +859,7 @@
             <h3>Configure Environment</h3>
             <p>Copy the example config and fill in your API tokens:</p>
             <div class="code-block">
+              <button class="copy-btn" title="Copy"><i class="fas fa-copy"></i></button>
               cp .env.example .env<br>
               <span class="comment"># Edit .env with your Discord token, Spotify keys, etc.</span>
             </div>
@@ -892,6 +871,7 @@
             <h3>Build & Launch</h3>
             <p>One command to build and start your bot in the background:</p>
             <div class="code-block">
+              <button class="copy-btn" title="Copy"><i class="fas fa-copy"></i></button>
               docker compose up -d --build<br>
               <span class="comment"># View logs: docker compose logs -f</span>
             </div>
@@ -922,6 +902,7 @@
           <div class="timeline-content">
             <h3>Clone & Install Dependencies</h3>
             <div class="code-block">
+              <button class="copy-btn" title="Copy"><i class="fas fa-copy"></i></button>
               git clone https://github.com/alan7383/playify.git<br>
               cd playify<br>
               pip install -r requirements.txt<br>
@@ -934,6 +915,7 @@
           <div class="timeline-content">
             <h3>Configure Environment</h3>
             <div class="code-block">
+              <button class="copy-btn" title="Copy"><i class="fas fa-copy"></i></button>
               cp .env.example .env<br>
               <span class="comment"># Edit .env with your tokens:</span><br>
               <span class="comment"># DISCORD_TOKEN=your_token</span><br>
@@ -947,7 +929,7 @@
           <div class="timeline-dot">4</div>
           <div class="timeline-content">
             <h3>Run the Bot</h3>
-            <div class="code-block">python playify.py</div>
+            <div class="code-block" style="padding-right: 56px;"><button class="copy-btn" title="Copy"><i class="fas fa-copy"></i></button>python playify.py</div>
             <p style="margin-top: 12px;">Generate your invite link from the <a href="https://discord.com/developers/applications" target="_blank">Developer Portal</a>, add the bot to your server, and you're set!</p>
           </div>
         </div>
@@ -998,7 +980,7 @@
         <details>
           <summary>How do I update to a new version?</summary>
           <div class="faq-answer">
-            <p>The Windows app notifies you automatically and updates with one click. For Docker, run <span style="color: var(--accent); font-family: monospace;">git pull && docker compose up -d --build</span>. For manual setups, just <span style="color: var(--accent); font-family: monospace;">git pull && pip install -r requirements.txt</span>.</p>
+            <p>For Docker, run <span style="color: var(--accent); font-family: monospace;">git pull && docker compose up -d --build</span>. For manual setups, just <span style="color: var(--accent); font-family: monospace;">git pull && pip install -r requirements.txt</span>.</p>
           </div>
         </details>
       </div>
@@ -1019,8 +1001,8 @@
       <h2>READY TO GET STARTED?</h2>
       <p>Pick your method, follow the steps, and have your own music bot running in minutes. It's that simple.</p>
       <div class="cta-buttons">
-        <a href="https://github.com/alan7383/playify/releases/latest" target="_blank" class="button primary-button">
-          <i class="fab fa-windows"></i> Download Windows App
+        <a href="windows_beginner_guide.md" class="button primary-button">
+          <i class="fab fa-windows"></i> Windows Setup Guide
         </a>
         <a href="https://github.com/alan7383/playify" target="_blank" class="button secondary-button">
           <i class="fab fa-github"></i> Clone from GitHub
@@ -1092,15 +1074,37 @@
       // === Method tab switching ===
       const tabs = document.querySelectorAll('.method-tab');
       const panels = document.querySelectorAll('.method-panel');
+
+      function activateTab(panelId) {
+        tabs.forEach(t => t.classList.remove('active'));
+        panels.forEach(p => p.classList.remove('active'));
+        const matchingTab = document.querySelector(`.method-tab[data-target="${panelId}"]`);
+        if (matchingTab) matchingTab.classList.add('active');
+        const panel = document.getElementById(panelId);
+        if (panel) panel.classList.add('active');
+      }
+
       tabs.forEach(tab => {
         tab.addEventListener('click', () => {
-          tabs.forEach(t => t.classList.remove('active'));
-          panels.forEach(p => p.classList.remove('active'));
-          tab.classList.add('active');
-          const target = document.getElementById(tab.dataset.target);
-          if (target) target.classList.add('active');
+          activateTab(tab.dataset.target);
         });
       });
+
+      // === Handle hash-based tab selection from index.html links ===
+      const hashMap = {
+        '#tab-windows': 'panel-windows',
+        '#tab-docker': 'panel-docker',
+        '#tab-manual': 'panel-manual'
+      };
+      const hash = window.location.hash;
+      if (hashMap[hash]) {
+        activateTab(hashMap[hash]);
+        // Scroll to the setup section after a short delay
+        setTimeout(() => {
+          const setupSection = document.querySelector('.method-tabs');
+          if (setupSection) setupSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
+      }
 
       // === Comparison card click to switch tab ===
       document.querySelectorAll('.comparison-card').forEach(card => {
@@ -1126,6 +1130,29 @@
               }
             }
           }
+        });
+      });
+
+      // === Copy-to-clipboard buttons ===
+      document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const block = btn.closest('.code-block');
+          // Clone the block and remove the button and comment spans for clean text
+          const clone = block.cloneNode(true);
+          clone.querySelectorAll('.copy-btn, .comment').forEach(el => el.remove());
+          // Replace <br> with newlines
+          clone.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
+          const text = clone.innerText.trim();
+          navigator.clipboard.writeText(text).then(() => {
+            const icon = btn.querySelector('i');
+            btn.classList.add('copied');
+            icon.className = 'fas fa-check';
+            setTimeout(() => {
+              btn.classList.remove('copied');
+              icon.className = 'fas fa-copy';
+            }, 1800);
+          });
         });
       });
 

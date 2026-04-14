@@ -569,12 +569,24 @@
       border: 1px solid rgba(138, 43, 226, 0.15);
       border-radius: 16px; padding: 28px 30px;
       transition: all 0.3s ease;
-      backdrop-filter: blur(10px); cursor: default;
+      backdrop-filter: blur(10px); cursor: pointer;
+      text-decoration: none; display: block; color: inherit;
     }
     .method-card:hover {
       transform: translateX(8px);
       border-color: rgba(138, 43, 226, 0.4);
       box-shadow: 0 5px 25px rgba(138, 43, 226, 0.15);
+    }
+    .method-card .method-card-arrow {
+      float: right;
+      opacity: 0;
+      color: var(--accent);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      transform: translateX(-4px);
+    }
+    .method-card:hover .method-card-arrow {
+      opacity: 1;
+      transform: translateX(0);
     }
     .method-card-header {
       display: flex; align-items: center; gap: 15px; margin-bottom: 12px;
@@ -1034,29 +1046,32 @@
         <h2>Your Own Bot.<br><span>Your Own Rules.</span></h2>
         <p>Self-hosting Playify means you own every part of the experience. No external servers, no telemetry, no restrictions. Your data stays on your machine, and your music never stops.</p>
         <div class="method-cards">
-          <div class="method-card">
+          <a href="windows_beginner_guide.md" class="method-card">
             <div class="method-card-header">
               <i class="fab fa-windows"></i>
-              <h3>Windows Installer</h3>
+              <h3>Windows Easy Setup</h3>
               <span class="method-badge">Easiest</span>
+              <i class="fas fa-arrow-right method-card-arrow"></i>
             </div>
-            <p>A one-click installer that handles everything — Python, FFmpeg, dependencies. Just enter your API keys and you're done forever.</p>
-          </div>
-          <div class="method-card">
+            <p>A simple startup script (start.bat) that handles everything — Python, FFmpeg, dependencies. Just enter your API keys and you're done.</p>
+          </a>
+          <a href="self-host.html#tab-docker" class="method-card">
             <div class="method-card-header">
               <i class="fab fa-docker"></i>
               <h3>Docker</h3>
               <span class="method-badge">Recommended</span>
+              <i class="fas fa-arrow-right method-card-arrow"></i>
             </div>
             <p>Clone, configure your .env file, and run <code style="color: var(--accent);">docker compose up -d</code>. Works on any OS with Docker installed.</p>
-          </div>
-          <div class="method-card">
+          </a>
+          <a href="self-host.html#tab-manual" class="method-card">
             <div class="method-card-header">
               <i class="fab fa-python"></i>
               <h3>Manual Setup</h3>
+              <i class="fas fa-arrow-right method-card-arrow"></i>
             </div>
             <p>For developers who want full control. Install Python 3.9+, FFmpeg, clone the repo, and run <code style="color: var(--accent);">python playify.py</code>.</p>
-          </div>
+          </a>
         </div>
       </div>
       <div class="self-host-perks fade-in delay-1">
@@ -1123,7 +1138,7 @@
       <div class="step fade-in delay-2">
         <div class="step-number">3</div>
         <h3 class="step-title">Choose Your Method</h3>
-        <p class="step-desc">Use the Windows installer, Docker, or manual Python setup — whatever suits you best.</p>
+        <p class="step-desc">Use the Windows Easy Setup (start.bat), Docker, or manual Python setup — whatever suits you best.</p>
       </div>
       <div class="step fade-in delay-3">
         <div class="step-number">4</div>
