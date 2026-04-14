@@ -793,6 +793,18 @@
 
     <!-- Method Comparison Cards -->
     <div class="comparison-grid fade-in delay-2">
+      <div class="comparison-card" data-method="windows">
+        <div class="comparison-icon"><i class="fab fa-windows"></i></div>
+        <h3>Windows Easy Setup</h3>
+        <p class="card-desc">No-code startup script. Perfect for beginners.</p>
+        <ul class="comparison-features">
+          <li><i class="fas fa-check"></i><span>Automatic Python install</span></li>
+          <li><i class="fas fa-check"></i><span>Automatic FFmpeg setup</span></li>
+          <li><i class="fas fa-check"></i><span>Guided token configuration</span></li>
+          <li><i class="fas fa-check"></i><span>Simple double-click launch</span></li>
+          <li><i class="fas fa-xmark"></i><span>Windows only</span></li>
+        </ul>
+      </div>
       <div class="comparison-card highlighted" data-method="docker">
         <div class="comparison-badge">Recommended</div>
         <div class="comparison-icon"><i class="fab fa-docker"></i></div>
@@ -829,7 +841,11 @@
     </p>
 
     <div class="method-tabs fade-in delay-2">
-      <button class="method-tab active" data-target="panel-docker">
+      <button class="method-tab active" data-target="panel-windows">
+        <i class="fab fa-windows"></i> Windows Easy Setup
+        <span class="tab-badge">Easiest</span>
+      </button>
+      <button class="method-tab" data-target="panel-docker">
         <i class="fab fa-docker"></i> Docker
       </button>
       <button class="method-tab" data-target="panel-manual">
@@ -838,8 +854,42 @@
     </div>
 
 
+    <!-- Windows Panel -->
+    <div id="panel-windows" class="method-panel active fade-in delay-3">
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-dot">1</div>
+          <div class="timeline-content">
+            <h3>Download Playify</h3>
+            <p>Download the <a href="https://github.com/alan7383/playify/archive/refs/heads/main.zip" target="_blank">Latest ZIP</a> and extract it to your computer.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot">2</div>
+          <div class="timeline-content">
+            <h3>Run the Startup Script</h3>
+            <p>Find <span class="code-inline">start.bat</span> in the folder and double-click it. The script will automatically install Python and FFmpeg if you don't have them.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot">3</div>
+          <div class="timeline-content">
+            <h3>Enter Your API Keys</h3>
+            <p>The script will ask for your Discord token and Spotify keys. Simply paste them into the window and press Enter.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot">4</div>
+          <div class="timeline-content">
+            <h3>Invite & Play</h3>
+            <p>Once you see "Logged in as...", your bot is ready. Invite it to your server and enjoy! 🎵</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Docker Panel -->
-    <div id="panel-docker" class="method-panel active">
+    <div id="panel-docker" class="method-panel">
       <div class="timeline">
         <div class="timeline-item">
           <div class="timeline-dot">1</div>
