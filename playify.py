@@ -116,9 +116,7 @@ logger = logging.getLogger(__name__)
 GENIUS_TOKEN = os.getenv("GENIUS_TOKEN")
 
 if GENIUS_TOKEN and GENIUS_TOKEN != "YOUR_GENIUS_TOKEN_HERE":
-    genius = lyricsgenius.Genius(
-        GENIUS_TOKEN, verbose=False, remove_section_headers=True
-    )
+    genius = lyricsgenius.Genius(GENIUS_TOKEN, remove_section_headers=True)
     logger.info("LyricsGenius client initialized.")
 else:
     genius = None
@@ -5429,37 +5427,39 @@ async def play_autocomplete(
     if not current or len(current) < 3:
         return []
 
-    # --- CORRECTION ---
     # If the input looks like a URL, don't show any suggestions.
     if re.match(r"https?://", current):
         return []
-    # --- FIN DE LA CORRECTION ---
 
     try:
-        # Uses a quick search on SoundCloud to get suggestions.
-        # "extract_flat": True is crucial for the search to be very fast.
         sanitized_query = sanitize_query(current)
-        search_prefix = "scsearch10:" if IS_PUBLIC_VERSION else "ytsearch10:"
-        search_query = f"{search_prefix}{sanitized_query}"  # Search for up to 10 results on SoundCloud
 
-        info = await fetch_video_info_with_retry(
-            search_query, ydl_opts_override={"extract_flat": True, "noplaylist": True}
+        # 🔧 OPTIMISATION 1: Réduire à 3 résultats max pour plus de rapidité
+        search_prefix = "scsearch3:" if IS_PUBLIC_VERSION else "ytsearch3:"
+        search_query = f"{search_prefix}{sanitized_query}"
+
+        # 🔧 OPTIMISATION 2: Timeout strict de 2 secondes pour respecter la limite Discord
+        info = await asyncio.wait_for(
+            fetch_video_info_with_retry(
+                search_query,
+                ydl_opts_override={
+                    "extract_flat": True,
+                    "noplaylist": True,
+                    "socket_timeout": 5,
+                },
+            ),
+            timeout=2.0,
         )
 
         choices = []
         if "entries" in info and info["entries"]:
-            for entry in info.get("entries", []):
+            for entry in info.get("entries", [])[:3]:  # 🔧 Limiter à 3 choix max
                 title = entry.get("title", "Unknown Title")
-                # We prioritize the 'webpage_url' (visible to the user) over the 'url' (which can be an API URL).
                 url = entry.get("webpage_url", entry.get("url"))
-                duration_seconds = entry.get(
-                    "duration"
-                )  # yt-dlp often provides the duration even in "flat" mode
+                duration_seconds = entry.get("duration")
 
-                # Ensures that we have a title and a URL
                 if title and url:
                     display_name = title
-                    # Add the duration to the title if it's available
                     if duration_seconds:
                         formatted_duration = format_duration(duration_seconds)
                         display_name = f"{title} - {formatted_duration}"
@@ -5467,20 +5467,21 @@ async def play_autocomplete(
                     if len(display_name) > 100:
                         display_name = display_name[:97] + "..."
 
-                    # THE FIX: Ensure the 'value' never exceeds 100 characters.
-                    # If the URL is short enough, use it for precision.
-                    # Otherwise, fall back to the title (truncated) as a search query.
                     choice_value = url if len(url) <= 100 else title[:100]
-
                     choices.append(
                         app_commands.Choice(name=display_name, value=choice_value)
                     )
 
         return choices
 
+    except asyncio.TimeoutError:
+        # 🔧 Retourner vide si timeout : mieux que de crasher
+        logger.warning(f"Autocomplete timeout for query: '{current}'")
+        return []
+
     except Exception as e:
         logger.error(f"Autocomplete search for '{current}' failed: {e}")
-        return []  # Returns an empty list on error
+        return []  # Toujours retourner une liste, jamais lever d'exception
 
 
 @bot.tree.command(name="play", description="Play a link or search for a song")
