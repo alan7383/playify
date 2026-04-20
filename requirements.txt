@@ -1,6 +1,7 @@
 # Core Discord library and voice dependency
 discord.py
 PyNaCl
+davey
 
 # Audio/Video downloading
 yt-dlp
