@@ -4585,16 +4585,33 @@ async def handle_playback_error(guild_id: int, error: Exception):
 
     state = get_guild_state(guild_id)
     is_kawaii = state.locale == Locale.EN_X_KAWAII
-    embed = Embed(
-        title=get_messages("error.critical.title", guild_id),
-        description=get_messages("error.critical.description", guild_id),
-        color=0xFF9AA2 if is_kawaii else discord.Color.red(),
-    )
-    embed.add_field(
-        name=get_messages("error.critical.report_field", guild_id),
-        value=get_messages("error.critical.report_value", guild_id),
-        inline=False,
-    )
+
+    error_str = str(error).lower()
+    is_forbidden = "403" in error_str or "forbidden" in error_str
+
+    if is_forbidden:
+        embed = Embed(
+            title=get_messages("error.youtube_403.title", guild_id),
+            description=get_messages("error.youtube_403.description", guild_id),
+            color=0xFF9AA2 if is_kawaii else discord.Color.orange(),
+        )
+        embed.add_field(
+            name=get_messages("error.youtube_403.fix_field", guild_id),
+            value=get_messages("error.youtube_403.fix_value", guild_id),
+            inline=False,
+        )
+    else:
+        embed = Embed(
+            title=get_messages("error.critical.title", guild_id),
+            description=get_messages("error.critical.description", guild_id),
+            color=0xFF9AA2 if is_kawaii else discord.Color.red(),
+        )
+        embed.add_field(
+            name=get_messages("error.critical.report_field", guild_id),
+            value=get_messages("error.critical.report_value", guild_id),
+            inline=False,
+        )
+
     error_details = get_messages(
         "error.critical.details_format",
         guild_id,
@@ -4607,6 +4624,7 @@ async def handle_playback_error(guild_id: int, error: Exception):
         inline=False,
     )
     embed.set_footer(text=get_messages("error.critical.footer", guild_id))
+
 
     try:
         await music_player.text_channel.send(embed=embed, silent=SILENT_MESSAGES)
