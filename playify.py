@@ -2874,6 +2874,9 @@ async def fetch_video_info_with_retry(query: str, ydl_opts_override=None):
         "no_warnings": True,
         "no_color": True,
         "socket_timeout": 15,
+        "extractor_args": {
+            "youtube": {"player_client": ["web_creator", "ios", "mweb", "tv_simply"]}
+        },
     }
     ydl_opts = {**base_ydl_opts, **(ydl_opts_override or {})}
 
@@ -4624,7 +4627,6 @@ async def handle_playback_error(guild_id: int, error: Exception):
         inline=False,
     )
     embed.set_footer(text=get_messages("error.critical.footer", guild_id))
-
 
     try:
         await music_player.text_channel.send(embed=embed, silent=SILENT_MESSAGES)

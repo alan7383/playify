@@ -20,6 +20,11 @@ error:
   unavailable:
     title: "Video went poof! (o.o)"
     description: "Poof! This video has disappeared... I can't find it anywhere (＃°Д°)!"
+  youtube_403:
+    title: "YouTube Access Denied! (・`m´・)"
+    description: "Google is being a meanie and blocking me from this song! (｡•́︿•̀｡) (Error 403)"
+    fix_field: "How to fix it!~"
+    fix_value: "1. Update yt-dlp: `pip install -U yt-dlp`\n2. Use cookies! (Check the README guide!)\n3. Grab the latest bot updates!~"
   youtube_blocked:
     title: "(´• ω •`) YouTube is a No-Go!"
     description: "Sowwy... I can't play YouTube links because of the big meanie Google... (｡•́︿•̀｡)\n\nBut you can give me my own little home with an easy Windows app I made for self-hosting! It's free and fun, and then YouTube works perfectly!~"

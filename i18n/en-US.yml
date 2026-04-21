@@ -20,6 +20,11 @@ error:
   unavailable:
     title: "⚠️ Video Unavailable"
     description: "This video is no longer available or may have been removed."
+  youtube_403:
+    title: "⚠️ YouTube Access Denied (403)"
+    description: "YouTube is blocking the request. This usually happens due to bot detection or IP-based restrictions."
+    fix_field: "How to Fix"
+    fix_value: "1. Update yt-dlp: `pip install -U yt-dlp`\n2. Use cookies: See the README for the setup guide.\n3. Pull the latest bot changes!"
   youtube_blocked:
     title: "YouTube Links Disabled"
     description: "Due to Google/YouTube restrictions, playing YouTube links directly is not supported on the public version of Playify.\n\nTo get full YouTube playback, a simple Windows app is available to set up self-hosting for you — it's free and gives you full control!"
