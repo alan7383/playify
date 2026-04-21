@@ -2887,7 +2887,11 @@ async def fetch_video_info_with_retry(query: str, ydl_opts_override=None):
     except yt_dlp.utils.DownloadError as e:
         error_str = str(e).lower()
         # Check for age restriction errors
-        if "sign in to confirm your age" in error_str or "age-restricted" in error_str:
+        if (
+            "sign in to confirm your age" in error_str
+            or "age-restricted" in error_str
+            or "please sign in" in error_str
+        ):
             logger.warning(
                 f"Age restriction detected for '{query[:100]}'. Retrying with cookies."
             )
@@ -5715,28 +5719,8 @@ async def play(interaction: discord.Interaction, query: str):
         await add_and_update_controller(video_info)
 
     except Exception as e:
-        embed = Embed(
-            description=get_messages("search_error", guild_id),
-            color=0xFF9AA2 if is_kawaii else discord.Color.red(),
-        )
         logger.error(f"Error in /play for '{query}': {e}", exc_info=True)
-        if not interaction.response.is_done():
-            await interaction.followup.send(embed=embed, ephemeral=True, silent=True)
-        else:
-            # If the original response was already edited/deleted, we can't edit it again.
-            # We must send a new message.
-            try:
-                await interaction.edit_original_response(
-                    content=get_messages(
-                        "error.command.fallback", guild_id, error=str(e)
-                    ),
-                    embed=None,
-                    view=None,
-                )
-            except (discord.NotFound, discord.InteractionResponded):
-                await interaction.followup.send(
-                    embed=embed, ephemeral=True, silent=True
-                )
+        await handle_playback_error(guild_id, e)
 
 
 @bot.tree.command(
@@ -7375,13 +7359,7 @@ async def search(interaction: discord.Interaction, query: str):
 
     except Exception as e:
         logger.error(f"Error during /search for '{query}': {e}", exc_info=True)
-        embed = Embed(
-            description=get_messages("search_error", guild_id),
-            color=0xFF9AA2 if is_kawaii else discord.Color.red(),
-        )
-        await interaction.followup.send(
-            embed=embed, ephemeral=True, silent=SILENT_MESSAGES
-        )
+        await handle_playback_error(guild_id, e)
 
 
 @bot.tree.command(
