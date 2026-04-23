@@ -24,7 +24,7 @@ import logging
 import requests
 from playwright.async_api import async_playwright
 from concurrent.futures import ProcessPoolExecutor
-from i18n_translator import I18nTranslator, Locale
+from src.i18n_translator import I18nTranslator, Locale
 from typing import Optional
 import json
 import time
@@ -49,7 +49,9 @@ load_dotenv()
 
 def init_db():
     """Initialize the SQLite database and create tables if they do not exist."""
-    conn = sqlite3.connect("playify_state.db")
+    if not os.path.exists("data"):
+        os.makedirs("data")
+    conn = sqlite3.connect("data/playify_state.db")
     cursor = conn.cursor()
 
     # Table for general server settings
@@ -419,7 +421,8 @@ async def save_all_states():
 async def load_states_on_startup():
     """Load the state of servers from the database on startup and attempt to resume playback."""
     logger.info("Loading states from the database...")
-    conn = sqlite3.connect("playify_state.db")
+    # Use the same path as in init_db
+    conn = sqlite3.connect("data/playify_state.db")
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 

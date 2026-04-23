@@ -8,12 +8,13 @@ echo ========================================
 echo.
 
 :: --- SYSTEM CHECKS (SILENT) ---
+set "PATH=%~dp0bin;%PATH%"
 
 :: 1. Python
 python --version >nul 2>&1 || goto install_python
 
 :: 2. FFmpeg
-ffmpeg -version >nul 2>&1 || (if not exist "ffmpeg.exe" goto install_ffmpeg)
+ffmpeg -version >nul 2>&1 || (if not exist "bin\ffmpeg.exe" goto install_ffmpeg)
 
 :: 3. Dependencies
 python -c "import discord, yt_dlp, spotipy" >nul 2>&1 || goto install_deps
@@ -57,9 +58,10 @@ echo Downloading FFmpeg 6.1.1...
 curl -# -L -o ffmpeg.7z "https://www.videohelp.com/download/ffmpeg-6.1.1-full_build.7z?r=zndlFgBq"
 echo Extracting FFmpeg... (this might take a minute)
 tar -xf ffmpeg.7z
-echo Moving ffmpeg.exe to the bot folder...
+echo Moving ffmpeg.exe to the bin folder...
+if not exist "bin" mkdir bin
 for /r %%i in (ffmpeg.exe) do (
-    if not "%%~dpi"=="%~dp0" move "%%i" . >nul 2>&1
+    if not "%%~dpi"=="%~dp0" move "%%i" bin\ >nul 2>&1
 )
 echo Cleaning up temporary files...
 del ffmpeg.7z >nul 2>&1
