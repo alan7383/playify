@@ -50,9 +50,13 @@ if %errorlevel% neq 0 (
     )
 )
 
-echo [2/3] Verifying dependencies (this may take a few seconds)...
-pip install -r requirements.txt --quiet --no-warn-script-location
-python -m playwright install >nul 2>&1
+echo [2/3] Verifying dependencies...
+python -c "import discord, yt_dlp, spotipy" >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [INFO] Installing missing dependencies...
+    pip install -r requirements.txt --quiet --no-warn-script-location
+    python -m playwright install >nul 2>&1
+)
 
 if exist ".env" goto run_bot
 
