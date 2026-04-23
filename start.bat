@@ -7,13 +7,7 @@ echo       Playify - Discord Music Bot
 echo ========================================
 echo.
 
-if exist ".env" goto run_bot
-
-echo [SETUP] Welcome! It looks like it's your first time (or you deleted your .env).
-echo [SETUP] Let's configure your bot.
-echo.
-
-echo Verifying Python installation...
+echo [1/3] Verifying Python installation...
 python --version >nul 2>&1
 if %errorlevel% neq 0 (
     echo Python was not found! Do not worry, installing it for you automatically...
@@ -56,10 +50,17 @@ if %errorlevel% neq 0 (
     )
 )
 
-echo [2/3] Installing/Updating requirements...
+echo [2/3] Verifying dependencies (this may take a few seconds)...
+pip install -r requirements.txt --quiet --no-warn-script-location
+python -m playwright install >nul 2>&1
+
+if exist ".env" goto run_bot
+
 echo.
-echo Now, we need your Discord and Spotify tokens!
-echo You only need to do this once.
+echo [3/3] Configuration - Welcome! 
+echo It looks like it's your first time (or you deleted your .env).
+echo Let's configure your bot tokens.
+echo.
 echo (Hint: Right-click to paste text into this window)
 echo.
 
@@ -75,14 +76,7 @@ set /p GENIUS_TOKEN="Paste your Genius API Token for lyrics (Optional, press Ent
 
 echo.
 echo Secrets saved to the .env file successfully!
-echo.
-echo Installing requirements (this may take a few minutes)...
-pip install -r requirements.txt
-echo Installing playwright browsers...
-python -m playwright install
-
-echo.
-echo Setup Complete! You won't have to do this again.
+echo Setup Complete!
 echo.
 
 :run_bot
