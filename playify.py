@@ -2874,9 +2874,7 @@ async def fetch_video_info_with_retry(query: str, ydl_opts_override=None):
         "no_warnings": True,
         "no_color": True,
         "socket_timeout": 15,
-        "extractor_args": {
-            "youtube": {"player_client": ["web_creator", "ios", "mweb", "tv_simply"]}
-        },
+        # On supprime 'extractor_args' ici car c'est ce qui déclenche l'anti-bot sur le VPS
     }
     ydl_opts = {**base_ydl_opts, **(ydl_opts_override or {})}
 
@@ -2886,14 +2884,16 @@ async def fetch_video_info_with_retry(query: str, ydl_opts_override=None):
         return await run_ydl_with_low_priority(ydl_opts, query)
     except yt_dlp.utils.DownloadError as e:
         error_str = str(e).lower()
-        # Check for age restriction errors
+        # Check for age restriction errors OR bot detection
+        # AJOUT DE "bot" POUR FORCER L'UTILISATION DES COOKIES
         if (
             "sign in to confirm your age" in error_str
             or "age-restricted" in error_str
             or "please sign in" in error_str
+            or "bot" in error_str
         ):
             logger.warning(
-                f"Age restriction detected for '{query[:100]}'. Retrying with cookies."
+                f"Restriction/Bot detection for '{query[:100]}'. Retrying with cookies."
             )
 
             cookies_to_try = AVAILABLE_COOKIES.copy()
@@ -2912,9 +2912,7 @@ async def fetch_video_info_with_retry(query: str, ydl_opts_override=None):
                     continue  # Try the next cookie
 
             # If all cookies failed, re-raise the original error
-            logger.error(
-                f"All cookies failed for age-restricted content: '{query[:100]}'"
-            )
+            logger.error(f"All cookies failed for restricted content: '{query[:100]}'")
             raise e
         else:
             # Not an age restriction error, re-raise it
