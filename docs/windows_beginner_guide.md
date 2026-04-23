@@ -26,7 +26,7 @@ This guide is made specially for you. We'll set up the bot step-by-step!
 ### FAQ / Troubleshooting 🛠️
 
 **Q: The bot says "FFmpeg is not found" when trying to play music!**
-A: Playify normally downloads FFmpeg automatically. If it failed, you can manually download `ffmpeg.exe` and place it **in the exact same folder** as `start.bat`.
+A: Playify normally downloads FFmpeg automatically. If it failed, you can manually download `ffmpeg.exe` and place it in the **`bin`** folder (create it if it doesn't exist).
 ⬇ [Download FFmpeg 6.1.1 here](https://www.videohelp.com/download/ffmpeg-6.1.1-full_build.7z?r=zndlFgBq) (extract and grab `ffmpeg.exe` from the `bin` folder).
 
 **Q: Do I need to enter my tokens every time?**

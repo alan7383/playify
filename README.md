@@ -189,7 +189,7 @@ To use Playify, please **self-host** it using the [Docker](#installation) or man
 <a id="troubleshooting"></a>
 ## (｀・ω・´) Troubleshooting
 
-* **FFmpeg not found**: Ensure FFmpeg **6.1.1** is installed & in your system's PATH. (Docker setup handles this for you!)  
+* **FFmpeg not found**: Ensure FFmpeg **6.1.1** is installed & in your system's PATH. On Windows, the bot expects it in the `bin/` folder if not in PATH. (Docker setup handles this for you!)  
   ⬇ [Download FFmpeg 6.1.1](https://www.videohelp.com/software?d=ffmpeg-6.1.1-full_build.7z)
 * **Spotify errors**: Verify your API credentials in the `.env` file.
 * **Bot offline/unresponsive**: Check your `DISCORD_TOKEN` and bot permissions in the Developer Portal.
