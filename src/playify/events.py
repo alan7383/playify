@@ -3,7 +3,7 @@
 from .core import *
 from .helpers.common import *
 from .services.playback import play_audio
-from .services.voice import clear_audio_cache, play_silence_loop
+from .services.voice import clear_audio_cache, play_silence_loop, safe_stop
 from .ui.controller import MusicControllerView
 
 @bot.event
@@ -92,22 +92,7 @@ async def on_voice_state_update(member, before, after):
                     music_player.start_time += elapsed * music_player.playback_speed
                     music_player.playback_started_at = None
 
-                # We no longer rely on the after_playing callback for this.
-                if isinstance(vc.source, discord.PCMAudio) and hasattr(
-                    vc.source, "process"
-                ):
-                    try:
-                        vc.source.process.kill()
-                        logger.info(
-                            f"[{guild_id}] Manually killed FFMPEG process for music due to empty channel."
-                        )
-                    except Exception as e:
-                        logger.error(
-                            f"[{guild_id}] Error killing FFMPEG process on leave: {e}"
-                        )
-
-                # We still call stop() to clean up discord.py's internal state.
-                vc.stop()
+                await safe_stop(vc)
 
             if get_guild_state(guild_id)._24_7_mode:
                 if not music_player.silence_task or music_player.silence_task.done():
@@ -143,7 +128,7 @@ async def on_voice_state_update(member, before, after):
                     music_player.silence_task.cancel()
                     music_player.is_resuming_after_silence = True
                     if vc.is_playing():
-                        vc.stop()  # This will be cleaned by its own 'finally' or our callback
+                        await safe_stop(vc)
                     await asyncio.sleep(0.1)
 
                 current_timestamp = music_player.start_time

@@ -418,10 +418,15 @@ async def safe_stop(vc: discord.VoiceClient):
     to prevent zombie processes.
     """
     if vc and (vc.is_playing() or vc.is_paused()):
-        # Force kill the FFMPEG process
-        if isinstance(vc.source, discord.PCMAudio) and hasattr(vc.source, "process"):
+        # PCMVolumeTransformer wraps FFmpegPCMAudio in `original`, so unwrap first.
+        source = vc.source
+        while hasattr(source, "original"):
+            source = source.original
+
+        process = getattr(source, "_process", None) or getattr(source, "process", None)
+        if process and process.poll() is None:
             try:
-                vc.source.process.kill()
+                process.kill()
                 logger.info(
                     f"[{vc.guild.id}] Manually killed FFMPEG process via safe_stop."
                 )

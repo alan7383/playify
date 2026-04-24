@@ -5,5 +5,5 @@ __pycache__/
 *.pyo
 *.pyd
 .DS_Store
-.venv"ffmpeg.exe" 
-ffmpeg.exe 
+.venv/
+ffmpeg.exe

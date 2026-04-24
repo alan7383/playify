@@ -32,7 +32,7 @@ class SeekModal(discord.ui.Modal):
 
         self.music_player.is_seeking = True
         self.music_player.seek_info = target_seconds
-        self.music_player.voice_client.stop()
+        await safe_stop(self.music_player.voice_client)
 
         await self.view.update_embed(interaction, jumped=True)
         # No need for interaction.response.send_message here as update_embed already handles it.
@@ -137,7 +137,7 @@ class SeekView(View):
 
         self.music_player.is_seeking = True
         self.music_player.seek_info = target_seconds
-        self.music_player.voice_client.stop()
+        await safe_stop(self.music_player.voice_client)
         await self.update_embed(interaction, jumped=True)
 
     @discord.ui.button(style=ButtonStyle.secondary, emoji="✏️")
@@ -152,7 +152,7 @@ class SeekView(View):
 
         self.music_player.is_seeking = True
         self.music_player.seek_info = target_seconds
-        self.music_player.voice_client.stop()
+        await safe_stop(self.music_player.voice_client)
         await self.update_embed(interaction, jumped=True)
 
     async def on_timeout(self):

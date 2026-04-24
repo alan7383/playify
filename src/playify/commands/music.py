@@ -1396,29 +1396,14 @@ async def stop(interaction: discord.Interaction):
     if music_player.voice_client and music_player.voice_client.is_connected():
         vc = music_player.voice_client
 
-        # 1. We kill the FFMPEG process directly and forcefully, if it exists.
-        if (
-            vc.is_playing()
-            and isinstance(vc.source, discord.PCMAudio)
-            and hasattr(vc.source, "process")
-        ):
-            try:
-                vc.source.process.kill()
-                logger.info(
-                    f"[{guild_id}] Manually killed FFMPEG process via /stop command."
-                )
-            except Exception as e:
-                logger.error(f"[{guild_id}] Error killing FFMPEG process on /stop: {e}")
+        # 1. Stop playback and kill the underlying FFmpeg process cleanly.
+        await safe_stop(vc)
 
-        # 2. We still call .stop() to clean up discord.py's internal state.
-        if vc.is_playing():
-            vc.stop()
-
-        # 3. We cancel the main playback task if it is active.
+        # 2. We cancel the main playback task if it is active.
         if music_player.current_task and not music_player.current_task.done():
             music_player.current_task.cancel()
 
-        # 4. NOW, we can disconnect safely.
+        # 3. NOW, we can disconnect safely.
         await vc.disconnect()
 
         bot.loop.create_task(update_controller(bot, interaction.guild.id))
