@@ -177,12 +177,34 @@ echo This is a one-time setup step.
 if not exist "%ROOT%\bin" mkdir "%ROOT%\bin"
 
 echo Downloading FFmpeg 6.1.1...
-curl -fL -o "%ROOT%\ffmpeg.7z" "https://www.videohelp.com/download/ffmpeg-6.1.1-full_build.7z?r=zndlFgBq"
+:: Ajout du User-Agent pour empecher videohelp.com de bloquer le telechargement avec une erreur HTML
+curl -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" -fL -o "%ROOT%\ffmpeg.7z" "https://www.videohelp.com/download/ffmpeg-6.1.1-full_build.7z?r=zndlFgBq"
 if errorlevel 1 goto ffmpeg_failed
 
 echo Extracting FFmpeg... (this might take a minute)
-tar -xf "%ROOT%\ffmpeg.7z"
-if errorlevel 1 goto ffmpeg_failed
+set "EXTRACT_SUCCESS=0"
+
+:: 1. Tente d'utiliser 7-Zip si installe (meilleure methode pour les .7z sur les vieux Windows)
+if exist "%ProgramFiles%\7-Zip\7z.exe" (
+    "%ProgramFiles%\7-Zip\7z.exe" x "%ROOT%\ffmpeg.7z" -o"%ROOT%" -y >nul 2>&1
+    if not errorlevel 1 set "EXTRACT_SUCCESS=1"
+) else if exist "%ProgramFiles(x86)%\7-Zip\7z.exe" (
+    "%ProgramFiles(x86)%\7-Zip\7z.exe" x "%ROOT%\ffmpeg.7z" -o"%ROOT%" -y >nul 2>&1
+    if not errorlevel 1 set "EXTRACT_SUCCESS=1"
+)
+
+:: 2. Si 7-Zip n'est pas la, tente avec tar (Fonctionne uniquement sur Win11 ressent)
+if "%EXTRACT_SUCCESS%"=="0" (
+    tar -xf "%ROOT%\ffmpeg.7z" -C "%ROOT%" >nul 2>&1
+    if not errorlevel 1 set "EXTRACT_SUCCESS=1"
+)
+
+:: 3. Si tout echoue, affiche une erreur claire a l'utilisateur
+if "%EXTRACT_SUCCESS%"=="0" (
+    echo [ERROR] Your version of Windows does not support extracting .7z archives natively.
+    echo Please install 7-Zip from https://www.7-zip.org/ and run start.bat again.
+    goto ffmpeg_failed
+)
 
 echo Moving ffmpeg.exe to the bin folder...
 for /r "%ROOT%" %%I in (ffmpeg.exe) do (
