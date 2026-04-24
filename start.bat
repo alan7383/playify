@@ -164,9 +164,6 @@ if errorlevel 1 goto pip_failed
 exit /b 0
 
 :ensure_ffmpeg
-ffmpeg -version >nul 2>&1
-if not errorlevel 1 exit /b 0
-
 if exist "%ROOT%\bin\ffmpeg.exe" exit /b 0
 goto install_ffmpeg
 
@@ -177,14 +174,23 @@ echo This is a one-time setup step.
 if not exist "%ROOT%\bin" mkdir "%ROOT%\bin"
 
 echo Downloading FFmpeg 6.1.1...
-:: Ajout du User-Agent pour empecher videohelp.com de bloquer le telechargement avec une erreur HTML
-curl -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" -fL -o "%ROOT%\ffmpeg.7z" "https://www.videohelp.com/download/ffmpeg-6.1.1-full_build.7z?r=zndlFgBq"
+curl -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" -fL --retry 3 -o "%ROOT%\ffmpeg.7z" "https://www.videohelp.com/download/ffmpeg-6.1.1-full_build.7z?r=pRMPJQvldglP"
 if errorlevel 1 goto ffmpeg_failed
+
+:: Verifie que le fichier telecharge est bien une archive et pas une page HTML (< 1 Mo = erreur)
+for %%F in ("%ROOT%\ffmpeg.7z") do set "FFMPEG_SIZE=%%~zF"
+if %FFMPEG_SIZE% LSS 1048576 (
+    echo [ERROR] The downloaded file is too small (%FFMPEG_SIZE% bytes^) - the server returned an error page.
+    echo Please download ffmpeg-6.1.1-full_build.7z manually and extract ffmpeg.exe into the bin\ folder.
+    del "%ROOT%\ffmpeg.7z" >nul 2>&1
+    goto ffmpeg_failed
+)
 
 echo Extracting FFmpeg... (this might take a minute)
 set "EXTRACT_SUCCESS=0"
+set "7ZR=%ROOT%\bin\7zr.exe"
 
-:: 1. Tente d'utiliser 7-Zip si installe (meilleure methode pour les .7z sur les vieux Windows)
+:: 1. 7-Zip installe
 if exist "%ProgramFiles%\7-Zip\7z.exe" (
     "%ProgramFiles%\7-Zip\7z.exe" x "%ROOT%\ffmpeg.7z" -o"%ROOT%" -y >nul 2>&1
     if not errorlevel 1 set "EXTRACT_SUCCESS=1"
@@ -193,15 +199,26 @@ if exist "%ProgramFiles%\7-Zip\7z.exe" (
     if not errorlevel 1 set "EXTRACT_SUCCESS=1"
 )
 
-:: 2. Si 7-Zip n'est pas la, tente avec tar (Fonctionne uniquement sur Win11 ressent)
+:: 2. Telecharge 7zr.exe standalone (~350 Ko, officiel 7-zip.org) si 7-Zip absent
+if "%EXTRACT_SUCCESS%"=="0" (
+    if not exist "%7ZR%" (
+        echo [INFO] 7-Zip not found. Downloading 7zr.exe standalone extractor...
+        curl -fL --retry 3 -o "%7ZR%" "https://www.7-zip.org/a/7zr.exe"
+    )
+    if exist "%7ZR%" (
+        "%7ZR%" x "%ROOT%\ffmpeg.7z" -o"%ROOT%" -y >nul 2>&1
+        if not errorlevel 1 set "EXTRACT_SUCCESS=1"
+    )
+)
+
+:: 3. tar en dernier recours (Win11 recent uniquement)
 if "%EXTRACT_SUCCESS%"=="0" (
     tar -xf "%ROOT%\ffmpeg.7z" -C "%ROOT%" >nul 2>&1
     if not errorlevel 1 set "EXTRACT_SUCCESS=1"
 )
 
-:: 3. Si tout echoue, affiche une erreur claire a l'utilisateur
 if "%EXTRACT_SUCCESS%"=="0" (
-    echo [ERROR] Your version of Windows does not support extracting .7z archives natively.
+    echo [ERROR] Could not extract FFmpeg automatically.
     echo Please install 7-Zip from https://www.7-zip.org/ and run start.bat again.
     goto ffmpeg_failed
 )
