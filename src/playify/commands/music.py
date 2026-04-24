@@ -1859,8 +1859,8 @@ async def reconnect(interaction: discord.Interaction):
     # not IF it's currently making sound. This is the key fix for the zombie state.
     if not music_player.current_info:
         embed = Embed(
-            description=get_messages("player.reconnect.not_playing", guild_id),
-            color=0xFF9AA2 if is_kawaii else discord.Color.red(),
+            description=get_messages("player.reconnect.success", guild_id),
+            color=0xB5EAD7 if is_kawaii else discord.Color.green(),
         )
         await interaction.response.send_message(
             embed=embed, ephemeral=True, silent=SILENT_MESSAGES

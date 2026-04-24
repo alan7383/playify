@@ -13,7 +13,8 @@ async def fetch_video_info_with_retry(query: str, ydl_opts_override=None):
         "no_warnings": True,
         "no_color": True,
         "socket_timeout": 15,
-        # On supprime 'extractor_args' ici car c'est ce qui déclenche l'anti-bot sur le VPS
+        "source_address": "0.0.0.0",  # Force IPv4 to bypass VPS bot detection
+        "extractor_args": {"youtube": ["player_client=android,web"]},
     }
     ydl_opts = {**base_ydl_opts, **(ydl_opts_override or {})}
 
@@ -379,6 +380,8 @@ def get_full_opts():
         "no_warnings": True,
         "noplaylist": True,
         "socket_timeout": 10,
+        "source_address": "0.0.0.0",
+        "extractor_args": {"youtube": ["player_client=android,web"]},
     }
 
 
