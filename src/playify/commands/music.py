@@ -11,6 +11,7 @@ from ..services.voice import *
 from ..ui.controller import *
 from ..ui.interactions import *
 
+
 @bot.tree.command(name="lyrics", description="Get song lyrics from Genius.")
 async def lyrics(interaction: discord.Interaction):
     if not interaction.guild:
@@ -182,6 +183,7 @@ async def karaoke(interaction: discord.Interaction):
 
 
 # /kaomoji command
+
 
 async def play_autocomplete(
     interaction: discord.Interaction, current: str
@@ -460,7 +462,7 @@ async def play(interaction: discord.Interaction, query: str):
 
     except Exception as e:
         logger.error(f"Error in /play for '{query}': {e}", exc_info=True)
-        await handle_playback_error(guild_id, e)
+        await handle_playback_error(guild_id, e, query_url=query)
 
 
 @bot.tree.command(
@@ -2084,7 +2086,7 @@ async def search(interaction: discord.Interaction, query: str):
 
     except Exception as e:
         logger.error(f"Error during /search for '{query}': {e}", exc_info=True)
-        await handle_playback_error(guild_id, e)
+        await handle_playback_error(guild_id, e, query_url=query)
 
 
 @bot.tree.command(
@@ -2182,6 +2184,7 @@ async def volume(
 
     await interaction.response.send_message(embed=embed, silent=SILENT_MESSAGES)
     bot.loop.create_task(update_controller(bot, interaction.guild.id))
+
 
 @bot.tree.command(
     name="previous", description="Plays the previous song in the history."

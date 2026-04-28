@@ -2,6 +2,7 @@
 
 from ..core import *
 
+
 async def fetch_video_info_with_retry(query: str, ydl_opts_override=None):
     """
     Fetches video info using yt-dlp, with a robust retry mechanism for age-restricted content.
@@ -14,7 +15,7 @@ async def fetch_video_info_with_retry(query: str, ydl_opts_override=None):
         "no_color": True,
         "socket_timeout": 15,
         "source_address": "0.0.0.0",  # Force IPv4 to bypass VPS bot detection
-        "extractor_args": {"youtube": ["player_client=android,web"]},
+        "extractor_args": {"youtube": {"player_client": ["android", "ios"]}},
     }
     ydl_opts = {**base_ydl_opts, **(ydl_opts_override or {})}
 
@@ -57,6 +58,7 @@ async def fetch_video_info_with_retry(query: str, ydl_opts_override=None):
         else:
             # Not an age restriction error, re-raise it
             raise e
+
 
 def ydl_worker(ydl_opts, query, cookies_file=None):
     """
@@ -381,7 +383,7 @@ def get_full_opts():
         "noplaylist": True,
         "socket_timeout": 10,
         "source_address": "0.0.0.0",
-        "extractor_args": {"youtube": ["player_client=android,web"]},
+        "extractor_args": {"youtube": {"player_client": ["android", "ios"]}},
     }
 
 

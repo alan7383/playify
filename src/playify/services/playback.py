@@ -7,7 +7,8 @@ from ..models.lazy_search import LazySearchItem
 from ..services.voice import fetch_video_info_with_retry, run_ydl_with_low_priority
 from ..ui.controller import update_controller
 
-async def handle_playback_error(guild_id: int, error: Exception):
+
+async def handle_playback_error(guild_id: int, error: Exception, query_url: str = None):
     """
     Handles unexpected errors during playback, informs the user,
     and provides instructions for reporting the bug.
@@ -57,7 +58,7 @@ async def handle_playback_error(guild_id: int, error: Exception):
     error_details = get_messages(
         "error.critical.details_format",
         guild_id,
-        url=music_player.current_url,
+        url=query_url or music_player.current_url or "Unknown",
         error_summary=str(error)[:500],
     )
     embed.add_field(
