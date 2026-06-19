@@ -80,8 +80,8 @@ def _install_ffmpeg(console: Console, project_root: Path) -> bool:
     Returns True on success, False on failure.
     """
     is_windows = os.name == "nt"
-    ffmpeg_url = FFMPEG_URL if is_windows else "https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/ffmpeg-linux-x64.gz"
-    archive_path = project_root / (FFMPEG_ARCHIVE if is_windows else "ffmpeg.gz")
+    ffmpeg_url = FFMPEG_URL if is_windows else "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz"
+    archive_path = project_root / (FFMPEG_ARCHIVE if is_windows else "ffmpeg.tar.xz")
 
     bin_dir = project_root / "bin"
     bin_dir.mkdir(exist_ok=True)
@@ -94,7 +94,7 @@ def _install_ffmpeg(console: Console, project_root: Path) -> bool:
         Text.from_markup(
             f"  [bold {BLUE_LIGHT}]FFmpeg is required for music playback.[/]\n"
             f"  [{GRAY}]This is a one-time setup step.[/]\n\n"
-            f"  [{BLUE_ICE}]{ICON_ARROW} Downloading from: [{GRAY}]{FFMPEG_URL}[/][/]"
+            f"  [{BLUE_ICE}]{ICON_ARROW} Downloading from: [{GRAY}]{ffmpeg_url}[/][/]"
         ),
         border_style=BLUE_NAVY,
         title=Text(f" {ICON_SPARK} FFmpeg Installation {ICON_SPARK} ", style=f"bold {BLUE_LIGHT}"),
@@ -104,7 +104,7 @@ def _install_ffmpeg(console: Console, project_root: Path) -> bool:
     console.print()
 
     try:
-        req = urllib.request.Request(FFMPEG_URL)
+        req = urllib.request.Request(ffmpeg_url)
         req.add_header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
 
         with urllib.request.urlopen(req, timeout=120) as response:
@@ -203,13 +203,18 @@ def _install_ffmpeg(console: Console, project_root: Path) -> bool:
                 if result.returncode == 0:
                     extracted = True
         else:
-            # Linux: Extract gzip directly via python
+            # Linux: Extract tar.xz directly via python
             try:
-                import gzip
-                with gzip.open(archive_path, 'rb') as f_in:
-                    with open(bin_dir / "ffmpeg", 'wb') as f_out:
-                        shutil.copyfileobj(f_in, f_out)
-                extracted = True
+                import tarfile
+                with tarfile.open(archive_path, 'r:xz') as tar:
+                    for member in tar.getmembers():
+                        if member.name.endswith("/ffmpeg") and member.isfile():
+                            f_in = tar.extractfile(member)
+                            if f_in:
+                                with open(bin_dir / "ffmpeg", 'wb') as f_out:
+                                    shutil.copyfileobj(f_in, f_out)
+                                extracted = True
+                                break
             except Exception:
                 pass
 
@@ -349,10 +354,11 @@ def main():
         if success and _check_ffmpeg(project_root):
             steps[1] = ("FFmpeg audio engine", "ok")
         else:
+            ffmpeg_exe_name = "ffmpeg.exe" if os.name == "nt" else "ffmpeg"
             steps[1] = ("FFmpeg audio engine -- INSTALL FAILED", "fail")
             show_setup_progress(console, steps)
             console.print(f"\n  [{RED}]FFmpeg could not be installed automatically.[/]")
-            console.print(f"  [{GRAY}]Please download FFmpeg manually and place ffmpeg.exe in the bin/ folder.[/]")
+            console.print(f"  [{GRAY}]Please download FFmpeg manually and place {ffmpeg_exe_name} in the bin/ folder.[/]")
             console.input(f"\n  [{GRAY}]Press Enter to exit...[/]")
             sys.exit(1)
 
