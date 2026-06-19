@@ -96,9 +96,12 @@ async def process_spotify_url(url, interaction):
 
             if "playlist" in clean_url:
                 data = await loop.run_in_executor(
-                    None, lambda: spotify_scraper_client.get_playlist_info(clean_url)
+                    None, lambda: spotify_scraper_client.get_playlist(clean_url).to_dict()
                 )
-                for track in data.get("tracks", []):
+                for item in data.get("tracks", []):
+                    track = item.get("track")
+                    if not track:
+                        continue
                     tracks_to_return.append(
                         (
                             track.get("name", "Unknown Title"),
@@ -108,7 +111,7 @@ async def process_spotify_url(url, interaction):
 
             elif "album" in clean_url:
                 data = await loop.run_in_executor(
-                    None, lambda: spotify_scraper_client.get_album_info(clean_url)
+                    None, lambda: spotify_scraper_client.get_album(clean_url).to_dict()
                 )
                 for track in data.get("tracks", []):
                     tracks_to_return.append(
@@ -120,7 +123,7 @@ async def process_spotify_url(url, interaction):
 
             elif "track" in clean_url:
                 data = await loop.run_in_executor(
-                    None, lambda: spotify_scraper_client.get_track_info(clean_url)
+                    None, lambda: spotify_scraper_client.get_track(clean_url).to_dict()
                 )
                 tracks_to_return.append(
                     (

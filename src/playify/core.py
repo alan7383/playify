@@ -18,7 +18,7 @@ import re
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 from spotify_scraper import SpotifyClient
-from spotify_scraper.core.exceptions import SpotifyScraperError
+from spotify_scraper import SpotifyScraperError
 import random
 from urllib.parse import urlparse, parse_qs, quote_plus
 from cachetools import TTLCache
@@ -164,9 +164,8 @@ except Exception as e:
 
 # Scraper Client (backup plan, without Selenium)
 try:
-    # Using "requests" mode, more reliable on a server
-    spotify_scraper_client = SpotifyClient(browser_type="requests")
-    logger.info("SpotifyScraper client successfully initialized in requests mode.")
+    spotify_scraper_client = SpotifyClient()
+    logger.info("SpotifyScraper client successfully initialized.")
 except Exception as e:
     spotify_scraper_client = None
     logger.error(f"Could not initialize SpotifyScraper: {e}")
