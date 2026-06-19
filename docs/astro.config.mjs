@@ -4,6 +4,8 @@ import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
 export default defineConfig({
+	site: 'https://alan7383.github.io',
+	base: '/playify',
 	integrations: [
 		starlight({
 			title: 'Playify',
