@@ -18,7 +18,7 @@
 
 ---
 
-### ~ V2 Update: The Ultimate Self-Hosted Experience
+### ~ v2 update
 
 Playify has been completely rewritten to provide a seamless, robust, and beautiful experience directly from your terminal.
 
