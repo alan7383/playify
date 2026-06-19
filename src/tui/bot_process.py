@@ -5,10 +5,12 @@ import sys
 import os
 import threading
 import time
-import signal
+import re
 from pathlib import Path
 from collections import deque
 from typing import Optional
+
+from .platform_utils import get_bot_creationflags, kill_bot_process
 
 
 class BotProcess:
@@ -103,7 +105,7 @@ class BotProcess:
             text=True,
             encoding="utf-8",
             errors="replace",
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0,
+            creationflags=get_bot_creationflags(),
         )
 
         self._running = True
@@ -118,11 +120,7 @@ class BotProcess:
         self._running = False
         if self.process and self.is_running:
             try:
-                if os.name == "nt":
-                    # On Windows, send CTRL_BREAK_EVENT for graceful shutdown
-                    self.process.send_signal(signal.CTRL_BREAK_EVENT)
-                else:
-                    self.process.terminate()
+                kill_bot_process(self.process)
 
                 # Wait up to 10 seconds for graceful shutdown
                 try:

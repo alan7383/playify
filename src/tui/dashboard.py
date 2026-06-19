@@ -4,12 +4,6 @@ import time
 import sys
 import os
 import threading
-if os.name == "nt":
-    import msvcrt
-else:
-    import termios
-    import tty
-    import select
 from pathlib import Path
 from rich.console import Console, Group
 from rich.panel import Panel
@@ -30,6 +24,7 @@ from .theme import (
     GREEN, RED, YELLOW, GRAY, GRAY_DARK, WHITE,
 )
 from .bot_process import BotProcess
+from .platform_utils import get_keypress, terminal_context
 
 
 # ─── Log Coloring ─────────────────────────────────────────────────────────────
@@ -358,38 +353,6 @@ def _build_dashboard(
     return Group(header, side_by_side, logs, hotkeys)
 
 
-def _get_keypress() -> str | None:
-    """Non-blocking keypress detection (Cross-platform)."""
-    if os.name == "nt":
-        if msvcrt.kbhit():
-            key = msvcrt.getch()
-            # Handle special keys (arrows)
-            if key in (b"\x00", b"\xe0"):
-                special = msvcrt.getch()
-                if special == b"H":  # Up arrow
-                    return "UP"
-                elif special == b"P":  # Down arrow
-                    return "DOWN"
-                return None
-            try:
-                return key.decode("utf-8").lower()
-            except UnicodeDecodeError:
-                return None
-        return None
-    else:
-        if select.select([sys.stdin], [], [], 0)[0]:
-            key = sys.stdin.read(1)
-            if key == '\x1b':
-                if select.select([sys.stdin], [], [], 0.05)[0]:
-                    if sys.stdin.read(1) == '[':
-                        if select.select([sys.stdin], [], [], 0.05)[0]:
-                            arrow = sys.stdin.read(1)
-                            if arrow == 'A': return "UP"
-                            if arrow == 'B': return "DOWN"
-            return key.lower()
-        return None
-
-
 def run_dashboard(console: Console, bot: BotProcess, project_root: Path) -> str:
     """
     Run the live dashboard.
@@ -398,20 +361,21 @@ def run_dashboard(console: Console, bot: BotProcess, project_root: Path) -> str:
     full_log_mode = False
     scroll_offset = 0
 
-    if os.name != "nt":
-        old_settings = termios.tcgetattr(sys.stdin)
-        tty.setcbreak(sys.stdin.fileno())
-
     try:
-        with Live(
-            _build_dashboard(bot),
-            console=console,
-            refresh_per_second=2,
-            screen=True,
-        ) as live:
-            while True:
-                try:
-                    # Get current terminal dimensions for dynamic sizing
+        with terminal_context():
+            with Live(
+                _build_dashboard(bot),
+                console=console,
+                refresh_per_second=4,
+                screen=True,
+            ) as live:
+                while True:
+                    time.sleep(0.05)  # 20 ticks per sec for smooth UI
+
+                    # Automatically reset scroll if log mode is disabled
+                    if not full_log_mode:
+                        scroll_offset = 0
+
                     term_width = console.size.width
                     term_height = console.size.height
 
@@ -427,7 +391,7 @@ def run_dashboard(console: Console, bot: BotProcess, project_root: Path) -> str:
                         )
                     )
 
-                    key = _get_keypress()
+                    key = get_keypress()
                     if key:
                         if key == "q":
                             return "quit"
@@ -441,22 +405,20 @@ def run_dashboard(console: Console, bot: BotProcess, project_root: Path) -> str:
                                 scroll_offset = 0
                         elif key == "c":
                             return "config"
+                        elif key == "r":
+                            return "restart"
                         elif key == "s":
                             return "settings"
                         elif key == "u":
                             return "update"
-                        elif key == "r":
-                            return "restart"
-                        elif key == "UP" and full_log_mode:
-                            scroll_offset = max(0, scroll_offset - 3)
-                        elif key == "DOWN" and full_log_mode:
+                        elif full_log_mode and key in ("up", "down"):
                             total = len(bot.get_all_logs())
-                            scroll_offset = min(max(0, total - max_log_lines), scroll_offset + 3)
+                            if key == "up":
+                                scroll_offset = max(0, scroll_offset - 3)
+                            elif key == "down":
+                                fl_max = _calc_log_lines(term_height, True)
+                                max_offset = max(0, total - fl_max)
+                                scroll_offset = min(max_offset, scroll_offset + 3)
 
-                    time.sleep(0.1)
-
-                except KeyboardInterrupt:
-                    return "quit"
-    finally:
-        if os.name != "nt":
-            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+    except KeyboardInterrupt:
+        return "quit"

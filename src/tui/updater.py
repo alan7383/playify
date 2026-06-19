@@ -16,6 +16,7 @@ from rich.text import Text
 from rich.prompt import Prompt
 from rich.progress import Progress, BarColumn, TextColumn, DownloadColumn, TransferSpeedColumn
 
+from .platform_utils import is_windows, apply_update_and_restart
 from .theme import BLUE_ICE, BLUE_LIGHT, GREEN, RED, YELLOW, GRAY, WHITE, ICON_SPARK, ICON_ROCKET, BLUE_NAVY
 
 GITHUB_API_URL = "https://api.github.com/repos/alan7383/playify/commits/main"
@@ -155,48 +156,6 @@ def run_update_wizard(console: Console, project_root: Path, latest_sha: str, com
 
     console.print(f"  [{GREEN}]Preparing to apply update and restart...[/]")
     
-    # Create the script that will do the overwrite and restart
-    if os.name == "nt":
-        updater_script = project_root / "apply_update.bat"
-        script_content = f"""@echo off
-title Playify Updater
-echo Playify is updating... Please wait.
-:: Wait 3 seconds to let Python exit completely
-ping 127.0.0.1 -n 4 > nul
-
-:: Copy all files, overwriting existing ones. 
-xcopy /s /e /y "{source_folder}\\*" "{project_root}\\" > nul
-
-:: Clean up temp files
-rmdir /s /q "{temp_dir}" > nul
-del "%~f0" > nul
-
-:: Restart Playify
-cd /d "{project_root}"
-start cmd /c start.bat
-exit
-"""
-        with open(updater_script, "w", encoding="utf-8") as f:
-            f.write(script_content)
-
-        subprocess.Popen(
-            ["cmd.exe", "/c", str(updater_script)],
-            creationflags=subprocess.CREATE_NEW_CONSOLE
-        )
-    else:
-        updater_script = project_root / "apply_update.sh"
-        script_content = f"""#!/bin/bash
-echo "Playify is updating... Please wait."
-cp -r "{source_folder}"/* "{project_root}"/
-rm -rf "{temp_dir}"
-rm -f "$0"
-cd "{project_root}"
-exec bash start.sh
-"""
-        with open(updater_script, "w", encoding="utf-8") as f:
-            f.write(script_content)
-        os.chmod(updater_script, 0o755)
-
-        os.execv("/bin/bash", ["bash", str(updater_script)])
+    apply_update_and_restart(project_root, source_folder, temp_dir)
     
     return True # Indicates we should exit the current python process
