@@ -50,7 +50,7 @@ source "$VENV_PATH/bin/activate"
 echo -e "${BLUE}Checking dependencies...${NC}"
 pip install -r requirements.txt -q
 # Ensure Playwright browsers are installed
-playwright install --with-deps chromium -q
+playwright install chromium
 
 # 5. FFmpeg will be handled by the Python TUI directly (downloaded to bin/)
 

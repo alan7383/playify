@@ -16,7 +16,7 @@ from rich.text import Text
 from rich.prompt import Prompt
 from rich.progress import Progress, BarColumn, TextColumn, DownloadColumn, TransferSpeedColumn
 
-from .theme import BLUE_ICE, BLUE_LIGHT, GREEN, RED, YELLOW, GRAY, ICON_SPARK, ICON_ROCKET, BLUE_NAVY
+from .theme import BLUE_ICE, BLUE_LIGHT, GREEN, RED, YELLOW, GRAY, WHITE, ICON_SPARK, ICON_ROCKET, BLUE_NAVY
 
 GITHUB_API_URL = "https://api.github.com/repos/alan7383/playify/commits/main"
 GITHUB_ZIP_URL = "https://github.com/alan7383/playify/archive/refs/heads/main.zip"
