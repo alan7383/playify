@@ -187,20 +187,16 @@ exit
         updater_script = project_root / "apply_update.sh"
         script_content = f"""#!/bin/bash
 echo "Playify is updating... Please wait."
-sleep 3
 cp -r "{source_folder}"/* "{project_root}"/
 rm -rf "{temp_dir}"
 rm -f "$0"
 cd "{project_root}"
-bash start.sh
+exec bash start.sh
 """
         with open(updater_script, "w", encoding="utf-8") as f:
             f.write(script_content)
         os.chmod(updater_script, 0o755)
 
-        subprocess.Popen(
-            ["bash", str(updater_script)],
-            start_new_session=True
-        )
+        os.execv("/bin/bash", ["bash", str(updater_script)])
     
     return True # Indicates we should exit the current python process

@@ -58,4 +58,4 @@ playwright install chromium > /dev/null 2>&1
 # 6. Launch TUI
 # Nettoie le terminal pour afficher directement l'interface
 clear
-python3 -m src.tui
+exec python3 -m src.tui
