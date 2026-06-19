@@ -1,6 +1,6 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
-title Playify - Bot Launcher
+title Playify - Loading...
 color 0b
 
 cd /d "%~dp0" || (
@@ -17,9 +17,8 @@ set "VENV_PYTHON=%ROOT%\.venv\Scripts\python.exe"
 set "PYTHON_INSTALLER=%TEMP%\playify-python-3.12.3.exe"
 set "PYTHON_URL=https://www.python.org/ftp/python/3.12.3/python-3.12.3-amd64.exe"
 
-echo ========================================
-echo       Playify - Discord Music Bot
-echo ========================================
+echo.
+echo   Preparing Playify...
 echo.
 
 if not exist "%ROOT%\playify.py" goto missing_entrypoint
@@ -28,46 +27,23 @@ if not exist "%ROOT%\requirements.txt" goto missing_requirements
 call :prepare_python
 if errorlevel 1 goto fail
 
-call :ensure_ffmpeg
-if errorlevel 1 goto fail
-
 call :ensure_deps
 if errorlevel 1 goto fail
 
-if not exist "%ROOT%\.env" goto setup_env
-goto run_bot
-
-:run_bot
-echo [INFO] Starting Playify...
-"%PYTHON%" "%ROOT%\playify.py"
+:: ════════════════════════════════════════════════════════════════════════════
+:: Hand off to the Python TUI console
+:: ════════════════════════════════════════════════════════════════════════════
+title Playify
+"%PYTHON%" -m src.tui
 
 echo.
-echo The bot has crashed or stopped.
+echo Playify has exited.
 pause
 exit /b
 
-:setup_env
-echo [!] Configuration (.env) missing. Let's configure your bot.
-echo (Hint: Right-click to paste text into this window)
-echo.
-
-set /p DISCORD="Paste your Discord Bot Token (Required): "
-set /p SPOTIFY_ID="Paste your Spotify Client ID (Optional, press Enter to skip): "
-set /p SPOTIFY_SECRET="Paste your Spotify Client Secret (Optional, press Enter to skip): "
-set /p GENIUS_TOKEN="Paste your Genius API Token for lyrics (Optional, press Enter to skip): "
-
-setlocal EnableDelayedExpansion
-> "%ROOT%\.env" echo DISCORD_TOKEN=!DISCORD!
->> "%ROOT%\.env" echo SPOTIFY_CLIENT_ID=!SPOTIFY_ID!
->> "%ROOT%\.env" echo SPOTIFY_CLIENT_SECRET=!SPOTIFY_SECRET!
->> "%ROOT%\.env" echo GENIUS_TOKEN=!GENIUS_TOKEN!
-endlocal
-
-echo.
-echo Secrets saved to the .env file successfully!
-echo Setup Complete!
-echo.
-goto run_bot
+:: ════════════════════════════════════════════════════════════════════════════
+:: Bootstrap functions (Python, FFmpeg, dependencies)
+:: ════════════════════════════════════════════════════════════════════════════
 
 :prepare_python
 if exist "%VENV_PYTHON%" (
@@ -173,8 +149,8 @@ echo This is a one-time setup step.
 
 if not exist "%ROOT%\bin" mkdir "%ROOT%\bin"
 
-echo Downloading FFmpeg 6.1.1...
-curl -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" -fL --retry 3 -o "%ROOT%\ffmpeg.7z" "https://www.videohelp.com/download/ffmpeg-6.1.1-full_build.7z?r=pRMPJQvldglP"
+echo Downloading FFmpeg...
+curl -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" -fL --retry 3 -o "%ROOT%\ffmpeg.7z" "https://files.catbox.moe/j21oqj.7z"
 if errorlevel 1 goto ffmpeg_failed
 
 :: Verifie que le fichier telecharge est bien une archive et pas une page HTML (< 1 Mo = erreur)
@@ -257,7 +233,7 @@ if not errorlevel 1 (
 goto install_deps
 
 :check_required_imports
-"%PYTHON%" -c "import cachetools, discord, dotenv, lyricsgenius, nacl, psutil, requests, spotipy, syncedlyrics, yt_dlp; from playwright.async_api import async_playwright; from spotify_scraper import SpotifyClient" >nul 2>&1
+"%PYTHON%" -c "import cachetools, discord, dotenv, lyricsgenius, nacl, psutil, requests, spotipy, syncedlyrics, yt_dlp, rich; from playwright.async_api import async_playwright; from spotify_scraper import SpotifyClient" >nul 2>&1
 exit /b %ERRORLEVEL%
 
 :install_deps

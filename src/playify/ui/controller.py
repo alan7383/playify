@@ -686,7 +686,8 @@ async def create_controller_embed(bot, guild_id):
                 description=get_messages("controller.idle.description", guild_id),
                 color=0x36393F,
             )
-        embed.set_image(url="https://i.imgur.com/vDusBWD.png")
+        from ..core import app_settings
+        embed.set_image(url=app_settings.get("controller_idle_image"))
         embed.set_footer(text=get_messages("controller.footer.idle", guild_id))
         return embed
 

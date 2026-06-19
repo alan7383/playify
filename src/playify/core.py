@@ -46,6 +46,7 @@ import shlex
 import sqlite3
 from pathlib import Path
 from dotenv import load_dotenv
+from .config import SettingsManager
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data"
@@ -54,6 +55,7 @@ I18N_DIR = PROJECT_ROOT / "i18n"
 
 load_dotenv(PROJECT_ROOT / ".env")
 
+app_settings = SettingsManager(PROJECT_ROOT)
 
 def init_db():
     """Initialize the SQLite database and create tables if they do not exist."""

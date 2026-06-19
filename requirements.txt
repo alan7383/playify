@@ -19,3 +19,4 @@ python-dotenv  # <-- NEW
 # Utilities
 cachetools
 psutil
+rich

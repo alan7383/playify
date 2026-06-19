@@ -268,7 +268,11 @@ async def play(interaction: discord.Interaction, query: str):
     music_player = state.music_player
 
     if not interaction.response.is_done():
-        await interaction.response.defer()
+        try:
+            await interaction.response.defer()
+        except discord.NotFound:
+            logger.warning(f"[{guild_id}] Interaction expired before defer. User's network or Discord API might be lagging.")
+            return
 
     if IS_PUBLIC_VERSION and re.search(
         r"youtube\.com|youtu\.be|music\.youtube\.com", query
@@ -737,7 +741,11 @@ async def play_next(
         )
         return
 
-    await interaction.response.defer()
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        logger.warning(f"[{guild_id}] Interaction expired before defer (play_next). User's network or Discord API might be lagging.")
+        return
 
     # Define the helper function to show the YouTube blocked message
     async def show_youtube_blocked_message():

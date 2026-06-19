@@ -391,6 +391,7 @@ async def play_audio(guild_id, seek_time=0, is_a_loop=False, song_that_just_ende
                                     await progress_message.delete()
 
                 if music_player.queue.empty():
+                    logger.info(f"[{guild_id}] Queue is empty, stopping playback.")
                     music_player.current_task = None
                     bot.loop.create_task(update_controller(bot, guild_id))
                     if not get_guild_state(guild_id)._24_7_mode:
@@ -535,9 +536,15 @@ async def play_audio(guild_id, seek_time=0, is_a_loop=False, song_that_just_ende
                 "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"
             )
         if seek_time > 0:
-            ffmpeg_options["before_options"] = (
-                f"-ss {seek_time} {ffmpeg_options.get('before_options', '')}".strip()
-            )
+            if music_player.current_info.get("source_type") == "file":
+                ffmpeg_options["before_options"] = (
+                    f"-ss {seek_time} {ffmpeg_options.get('before_options', '')}".strip()
+                )
+            else:
+                # For network streams, -ss in before_options often breaks filter graphs (aecho, etc.)
+                ffmpeg_options["options"] = (
+                    f"{ffmpeg_options.get('options', '')} -ss {seek_time}".strip()
+                )
         if filter_chain:
             ffmpeg_options["options"] = (
                 f"{ffmpeg_options.get('options', '')} -af \"{filter_chain}\"".strip()
@@ -563,6 +570,7 @@ async def play_audio(guild_id, seek_time=0, is_a_loop=False, song_that_just_ende
 
         music_player.start_time = seek_time
         music_player.playback_started_at = time.time()
+        logger.info(f"[{guild_id}] Playing '{music_player.current_info.get('title', 'Unknown')}'")
 
         state = get_guild_state(guild_id)
         if state.controller_channel_id and not is_a_loop and seek_time == 0:

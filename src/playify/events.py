@@ -203,6 +203,79 @@ async def global_interaction_check(interaction: discord.Interaction) -> bool:
 
 @bot.event
 async def on_ready():
+
+                current_timestamp = music_player.start_time
+
+                if music_player.is_current_live:
+                    logger.info(
+                        f"Resuming a live stream for guild {guild_id}. Triggering resync."
+                    )
+                    music_player.is_resuming_live = True
+                    bot.loop.create_task(play_audio(guild_id, is_a_loop=True))
+                else:
+                    logger.info(
+                        f"Resuming track '{music_player.current_info.get('title')}' at {current_timestamp:.2f}s."
+                    )
+                    bot.loop.create_task(
+                        play_audio(
+                            guild_id, seek_time=current_timestamp, is_a_loop=True
+                        )
+                    )
+
+
+async def global_interaction_check(interaction: discord.Interaction) -> bool:
+    """
+    Final global check for slash commands.
+    Properly handles autocomplete interactions.
+    """
+    # If it's an autocomplete request, always allow it.
+    # The actual check will be performed during command submission.
+    if interaction.type == discord.InteractionType.autocomplete:
+        return True
+
+    # For all other interactions (command submission, buttons, etc.),
+    # apply our security logic.
+    if not interaction.guild:
+        return True
+
+    guild_id = interaction.guild.id
+    allowed_ids = get_guild_state(guild_id).allowed_channels
+
+    if not allowed_ids:
+        return True
+
+    if interaction.user.guild_permissions.manage_guild:
+        return True
+
+    if interaction.channel_id in allowed_ids:
+        return True
+
+    # Final block if no condition is met
+    state = get_guild_state(guild_id)
+    is_kawaii = state.locale == Locale.EN_X_KAWAII
+    channel_mentions = ", ".join([f"<#{ch_id}>" for ch_id in allowed_ids])
+    description_text = get_messages(
+        "command.restricted_description",
+        guild_id,
+        bot_name=interaction.client.user.name,
+    )
+
+    embed = discord.Embed(
+        title=get_messages("command.restricted_title", guild_id),
+        description=description_text,
+        color=0xFF9AA2 if is_kawaii else discord.Color.red(),
+    )
+    embed.add_field(
+        name=get_messages("command.allowed_channels_field", guild_id),
+        value=channel_mentions,
+    )
+
+    await interaction.response.send_message(embed=embed, ephemeral=True, silent=True)
+    return False
+
+
+@bot.event
+async def on_ready():
     logger.info(f"{bot.user.name} is online.")
     try:
         bot.tree.interaction_check = global_interaction_check
@@ -221,37 +294,35 @@ async def on_ready():
             while not bot.is_closed():
                 if bot.guilds:
                     guild_id = bot.guilds[0].id
+                    
+                    # Fetch from settings
+                    from .core import app_settings
+                    app_settings.reload()
+                    custom_status_text = app_settings.get("bot_status_text", "").strip()
+                    custom_status_type = app_settings.get("bot_status_type", 0)
 
-                    statuses = [
-                        (
-                            get_messages("presence.listening_volume", guild_id),
-                            discord.ActivityType.listening,
-                        ),
-                        (
-                            get_messages("presence.listening_play", guild_id),
-                            discord.ActivityType.listening,
-                        ),
-                        (
-                            get_messages(
-                                "presence.playing_servers",
-                                guild_id,
-                                count=len(bot.guilds),
-                            ),
-                            discord.ActivityType.playing,
-                        ),
-                    ]
-
-                    for status_text, status_type in statuses:
-                        try:
+                    try:
+                        if custom_status_text:
                             await bot.change_presence(
                                 activity=discord.Activity(
-                                    name=status_text, type=status_type
+                                    name=custom_status_text, 
+                                    type=discord.ActivityType(custom_status_type)
                                 )
                             )
-                            await asyncio.sleep(10)
-                        except Exception as e:
-                            logger.error(f"Error changing presence: {e}")
-                            await asyncio.sleep(5)
+                        else:
+                            await bot.change_presence(activity=None)
+                            
+                        # Compute stats for TUI
+                        from .core import url_cache, get_guild_state
+                        players = len(bot.voice_clients)
+                        queued = sum(get_guild_state(g.id).music_player.queue.qsize() for g in bot.guilds)
+                        
+                        logger.info(f"[STATS] servers: {len(bot.guilds)} | players: {players} | queued: {queued} | cache: {url_cache.currsize}")
+                        
+                        await asyncio.sleep(15)  # Update every 15 seconds
+                    except Exception as e:
+                        logger.error(f"Error changing presence: {e}")
+                        await asyncio.sleep(5)
                 else:
                     await asyncio.sleep(30)
 
