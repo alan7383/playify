@@ -59,17 +59,24 @@ def save_settings(settings: dict) -> None:
 def clear_screen(console: Console):
     console.clear()
     
+from rich.align import Align
+
 def print_banner(console: Console):
-    banner = f"""[bold {BLUE_ICE}]
-    ███████╗███████╗████████╗████████╗██╗███╗   ██╗ ██████╗ ███████╗
-    ██╔════╝██╔════╝╚══██╔══╝╚══██╔══╝██║████╗  ██║██╔════╝ ██╔════╝
-    ███████╗█████╗     ██║      ██║   ██║██╔██╗ ██║██║  ███╗███████╗
-    ╚════██║██╔══╝     ██║      ██║   ██║██║╚██╗██║██║   ██║╚════██║
-    ███████║███████╗   ██║      ██║   ██║██║ ╚████║╚██████╔╝███████║
-    ╚══════╝╚══════╝   ╚═╝      ╚═╝   ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚══════╝
-    [/]"""
-    console.print(banner, justify="center")
-    console.print(f"[bold {WHITE}]        Playify Controller System - Advanced Configuration[/]\n", justify="center")
+    header_text = Text()
+    header_text.append(f"  {ICON_GEAR} ", style=f"bold {BLUE_ICE}")
+    header_text.append("PLAYIFY", style=f"bold {BLUE_LIGHT}")
+    header_text.append(" SETTINGS", style=f"bold {BLUE_ICE}")
+    header_text.append(f"  {ICON_GEAR}", style=f"bold {BLUE_ICE}")
+
+    subtitle = Text(" Advanced Configuration ", style=f"bold {GRAY_DARK}")
+
+    panel = Panel(
+        Align.center(header_text),
+        border_style=BLUE_NAVY,
+        padding=(0, 0),
+        subtitle=subtitle,
+    )
+    console.print(panel)
 
 def draw_menu(console: Console, settings: dict):
     clear_screen(console)
