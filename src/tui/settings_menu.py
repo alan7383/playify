@@ -81,6 +81,7 @@ def print_banner(console: Console):
 def draw_menu(console: Console, settings: dict):
     clear_screen(console)
     print_banner(console)
+    console.print()
     
     from rich import box
     table = Table(show_header=False, box=box.SIMPLE_HEAD, padding=(0, 3))
