@@ -22,39 +22,7 @@ except ImportError:
     BLUE_ICE, BLUE_LIGHT, BLUE_NAVY, BLUE_DEEP, STEEL, WHITE, GRAY_DARK = "cyan", "blue", "blue", "blue", "grey70", "white", "grey30"
     ICON_GEAR, ICON_PLAY, BOX_TL, BOX_TR, BOX_BL, BOX_BR, BOX_H, BOX_V = "#", ">", "+", "+", "+", "+", "-", "|"
 
-SETTINGS_PATH = Path("data/settings.json")
-DEFAULT_SETTINGS = {
-    "bot_status_text": "",
-    "bot_status_type": 0,  # 0: Playing, 2: Listening, 3: Watching
-    "controller_idle_image": "https://i.imgur.com/vDusBWD.png",
-}
-
-STATUS_TYPES = {
-    0: "Playing",
-    2: "Listening",
-    3: "Watching",
-    5: "Competing"
-}
-
-def load_settings() -> dict:
-    if not SETTINGS_PATH.exists():
-        return DEFAULT_SETTINGS.copy()
-    try:
-        with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            settings = DEFAULT_SETTINGS.copy()
-            settings.update(data)
-            return settings
-    except Exception:
-        return DEFAULT_SETTINGS.copy()
-
-def save_settings(settings: dict) -> None:
-    SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        with open(SETTINGS_PATH, "w", encoding="utf-8") as f:
-            json.dump(settings, f, indent=4)
-    except Exception as e:
-        print(f"Failed to save settings: {e}")
+from ..playify.config import Config
 
 def clear_screen(console: Console):
     console.clear()
@@ -78,7 +46,14 @@ def print_banner(console: Console):
     )
     console.print(panel)
 
-def draw_menu(console: Console, settings: dict):
+    st_type = STATUS_TYPES.get(Config.get("bot_status_type"), "Unknown")
+    bot_status_text = Config.get("bot_status_text")
+    st_text = bot_status_text if bot_status_text else f"[{GRAY_DARK}]<None>[/]"
+    
+    table.add_row(f"[{BLUE_ICE}][ 1 ][/]", "Bot Status Text", st_text)
+    table.add_row(f"[{BLUE_ICE}][ 2 ][/]", "Bot Status Type", f"{st_type} (Code {Config.get('bot_status_type')})")
+    table.add_row(f"[{BLUE_ICE}][ 3 ][/]", "Controller Idle Image URL", Config.get("controller_idle_image"))
+def draw_menu(console: Console):
     clear_screen(console)
     print_banner(console)
     console.print()
@@ -89,12 +64,20 @@ def draw_menu(console: Console, settings: dict):
     table.add_column("Description", style=STEEL)
     table.add_column("Current Value", style=f"bold {WHITE}")
     
-    st_type = STATUS_TYPES.get(settings["bot_status_type"], "Unknown")
-    st_text = settings["bot_status_text"] if settings["bot_status_text"] else f"[{GRAY_DARK}]<None>[/]"
+    STATUS_TYPES = {
+        0: "Playing",
+        2: "Listening",
+        3: "Watching",
+        5: "Competing"
+    }
+
+    st_type = STATUS_TYPES.get(Config.get("bot_status_type"), "Unknown")
+    bot_status_text = Config.get("bot_status_text")
+    st_text = bot_status_text if bot_status_text else f"[{GRAY_DARK}]<None>[/]"
     
     table.add_row(f"[{BLUE_ICE}][ 1 ][/]", "Bot Status Text", st_text)
-    table.add_row(f"[{BLUE_ICE}][ 2 ][/]", "Bot Status Type", f"{st_type} (Code {settings['bot_status_type']})")
-    table.add_row(f"[{BLUE_ICE}][ 3 ][/]", "Controller Idle Image URL", settings["controller_idle_image"])
+    table.add_row(f"[{BLUE_ICE}][ 2 ][/]", "Bot Status Type", f"{st_type} (Code {Config.get('bot_status_type')})")
+    table.add_row(f"[{BLUE_ICE}][ 3 ][/]", "Controller Idle Image URL", Config.get("controller_idle_image"))
     table.add_row("", "", "")
     table.add_row(f"[{BLUE_ICE}][ 0 ][/]", "Return to Dashboard", "")
     
@@ -108,10 +91,10 @@ def draw_menu(console: Console, settings: dict):
 
 def run_settings_menu():
     console = Console(theme=PLAYIFY_THEME)
-    settings = load_settings()
+    Config.reload()
     
     while True:
-        draw_menu(console, settings)
+        draw_menu(console)
         
         console.print()
         choice = Prompt.ask(f"  [bold {BLUE_ICE}]{ICON_PLAY} Select an option[/]", choices=["1", "2", "3", "0"], default="0")
@@ -120,27 +103,24 @@ def run_settings_menu():
             break
             
         elif choice == "1":
-            console.print(f"\n  [{STEEL}]Current text:[/] {settings['bot_status_text'] or '<None>'}")
+            console.print(f"\n  [{STEEL}]Current text:[/] {Config.get('bot_status_text') or '<None>'}")
             console.print(f"  [{GRAY_DARK}](To remove the status completely, just type the word 'none' or leave empty)[/]")
             new_val = Prompt.ask(f"  [bold {BLUE_LIGHT}]Enter new status text[/]")
             if new_val.strip().lower() == "none" or new_val == "":
-                settings["bot_status_text"] = ""
+                Config.set("bot_status_text", "")
             else:
-                settings["bot_status_text"] = new_val.strip()
-            save_settings(settings)
+                Config.set("bot_status_text", new_val.strip())
                 
         elif choice == "2":
             console.print(f"\n  [{STEEL}]Available types:[/] 0=Playing, 2=Listening, 3=Watching, 5=Competing")
-            new_val = IntPrompt.ask(f"  [bold {BLUE_LIGHT}]Enter new status type[/]", choices=["0", "2", "3", "5"], default=settings['bot_status_type'])
-            settings["bot_status_type"] = new_val
-            save_settings(settings)
+            new_val = IntPrompt.ask(f"  [bold {BLUE_LIGHT}]Enter new status type[/]", choices=["0", "2", "3", "5"], default=Config.get('bot_status_type'))
+            Config.set("bot_status_type", new_val)
             
         elif choice == "3":
-            console.print(f"\n  [{STEEL}]Current URL:[/] {settings['controller_idle_image']}")
+            console.print(f"\n  [{STEEL}]Current URL:[/] {Config.get('controller_idle_image')}")
             new_val = Prompt.ask(f"  [bold {BLUE_LIGHT}]Enter new image URL (must be a direct link, e.g., .png/.jpg)[/]")
             if new_val.strip() and new_val.startswith("http"):
-                settings["controller_idle_image"] = new_val.strip()
-                save_settings(settings)
+                Config.set("controller_idle_image", new_val.strip())
             elif new_val.strip():
                 console.print(f"  [bold red]Invalid URL![/] Must start with http/https.", style="error")
                 import time

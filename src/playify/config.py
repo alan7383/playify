@@ -15,7 +15,10 @@ DEFAULT_SETTINGS = {
 class SettingsManager:
     """Manages persistent settings in data/settings.json."""
 
-    def __init__(self, project_root: Path):
+    def __init__(self, project_root: Path | None = None):
+        if project_root is None:
+            project_root = Path(__file__).resolve().parents[2]
+            
         self.data_dir = project_root / "data"
         self.settings_file = self.data_dir / "settings.json"
         
@@ -69,4 +72,5 @@ class SettingsManager:
         self.settings[key] = value
         self.save()
 
-# Global settings instance will be initialized by core.py or wherever needed
+# Global settings instance
+Config = SettingsManager()
