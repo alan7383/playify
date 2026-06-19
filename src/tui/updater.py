@@ -69,7 +69,7 @@ def run_update_wizard(console: Console, project_root: Path, latest_sha: str, com
     
     panel = Panel(
         Text.from_markup(
-            f"[{BLUE_LIGHT}]✨ A new version of Playify is available![/]\n\n"
+            f"[{BLUE_LIGHT}]{ICON_SPARK} A new version of Playify is available![/]\n\n"
             f"[{GRAY}]Latest Update:[/] [{WHITE}]{commit_msg}[/]\n"
             f"[{GRAY}]Version SHA:[/] [{BLUE_ICE}]{latest_sha[:7]}[/]\n\n"
             f"[{GREEN}]The updater will automatically download and install the new files without touching your settings or data.[ /]"

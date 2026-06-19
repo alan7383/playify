@@ -10,8 +10,6 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}  Preparing Playify...${NC}\n"
-
 cd "$(dirname "$0")"
 ROOT=$(pwd)
 
@@ -47,15 +45,17 @@ fi
 # 4. Activate Venv and Install Dependencies
 source "$VENV_PATH/bin/activate"
 
-echo -e "${BLUE}Checking dependencies...${NC}"
+# Désactiver l'avertissement de mise à jour de pip
+export PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Installation silencieuse des dépendances
 pip install -r requirements.txt -q
-# Ensure Playwright browsers are installed
-playwright install chromium
+# Ensure Playwright browsers are installed (quietly)
+playwright install chromium > /dev/null 2>&1
 
 # 5. FFmpeg will be handled by the Python TUI directly (downloaded to bin/)
 
 # 6. Launch TUI
-echo -e "${GREEN}Launching Playify TUI...${NC}\n"
+# Nettoie le terminal pour afficher directement l'interface
+clear
 python3 -m src.tui
-
-echo -e "\n${BLUE}Playify has exited.${NC}"

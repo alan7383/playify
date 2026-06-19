@@ -378,20 +378,15 @@ def _get_keypress() -> str | None:
         return None
     else:
         if select.select([sys.stdin], [], [], 0)[0]:
-            old_settings = termios.tcgetattr(sys.stdin)
-            try:
-                tty.setcbreak(sys.stdin.fileno())
-                key = sys.stdin.read(1)
-                if key == '\x1b':
-                    if select.select([sys.stdin], [], [], 0.05)[0]:
-                        if sys.stdin.read(1) == '[':
-                            if select.select([sys.stdin], [], [], 0.05)[0]:
-                                arrow = sys.stdin.read(1)
-                                if arrow == 'A': return "UP"
-                                if arrow == 'B': return "DOWN"
-                return key.lower()
-            finally:
-                termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+            key = sys.stdin.read(1)
+            if key == '\x1b':
+                if select.select([sys.stdin], [], [], 0.05)[0]:
+                    if sys.stdin.read(1) == '[':
+                        if select.select([sys.stdin], [], [], 0.05)[0]:
+                            arrow = sys.stdin.read(1)
+                            if arrow == 'A': return "UP"
+                            if arrow == 'B': return "DOWN"
+            return key.lower()
         return None
 
 
@@ -403,57 +398,65 @@ def run_dashboard(console: Console, bot: BotProcess, project_root: Path) -> str:
     full_log_mode = False
     scroll_offset = 0
 
-    with Live(
-        _build_dashboard(bot),
-        console=console,
-        refresh_per_second=2,
-        screen=True,
-    ) as live:
-        while True:
-            try:
-                # Get current terminal dimensions for dynamic sizing
-                term_width = console.size.width
-                term_height = console.size.height
+    if os.name != "nt":
+        old_settings = termios.tcgetattr(sys.stdin)
+        tty.setcbreak(sys.stdin.fileno())
 
-                max_log_lines = _calc_log_lines(term_height, full_log_mode)
+    try:
+        with Live(
+            _build_dashboard(bot),
+            console=console,
+            refresh_per_second=2,
+            screen=True,
+        ) as live:
+            while True:
+                try:
+                    # Get current terminal dimensions for dynamic sizing
+                    term_width = console.size.width
+                    term_height = console.size.height
 
-                live.update(
-                    _build_dashboard(
-                        bot,
-                        term_width=term_width,
-                        term_height=term_height,
-                        full_log_mode=full_log_mode,
-                        scroll_offset=scroll_offset,
+                    max_log_lines = _calc_log_lines(term_height, full_log_mode)
+
+                    live.update(
+                        _build_dashboard(
+                            bot,
+                            term_width=term_width,
+                            term_height=term_height,
+                            full_log_mode=full_log_mode,
+                            scroll_offset=scroll_offset,
+                        )
                     )
-                )
 
-                key = _get_keypress()
-                if key:
-                    if key == "q":
-                        return "quit"
-                    elif key == "l":
-                        full_log_mode = not full_log_mode
-                        if full_log_mode:
+                    key = _get_keypress()
+                    if key:
+                        if key == "q":
+                            return "quit"
+                        elif key == "l":
+                            full_log_mode = not full_log_mode
+                            if full_log_mode:
+                                total = len(bot.get_all_logs())
+                                fl_max = _calc_log_lines(term_height, True)
+                                scroll_offset = max(0, total - fl_max)
+                            else:
+                                scroll_offset = 0
+                        elif key == "c":
+                            return "config"
+                        elif key == "s":
+                            return "settings"
+                        elif key == "u":
+                            return "update"
+                        elif key == "r":
+                            return "restart"
+                        elif key == "UP" and full_log_mode:
+                            scroll_offset = max(0, scroll_offset - 3)
+                        elif key == "DOWN" and full_log_mode:
                             total = len(bot.get_all_logs())
-                            fl_max = _calc_log_lines(term_height, True)
-                            scroll_offset = max(0, total - fl_max)
-                        else:
-                            scroll_offset = 0
-                    elif key == "c":
-                        return "config"
-                    elif key == "s":
-                        return "settings"
-                    elif key == "u":
-                        return "update"
-                    elif key == "r":
-                        return "restart"
-                    elif key == "UP" and full_log_mode:
-                        scroll_offset = max(0, scroll_offset - 3)
-                    elif key == "DOWN" and full_log_mode:
-                        total = len(bot.get_all_logs())
-                        scroll_offset = min(max(0, total - max_log_lines), scroll_offset + 3)
+                            scroll_offset = min(max(0, total - max_log_lines), scroll_offset + 3)
 
-                time.sleep(0.1)
+                    time.sleep(0.1)
 
-            except KeyboardInterrupt:
-                return "quit"
+                except KeyboardInterrupt:
+                    return "quit"
+    finally:
+        if os.name != "nt":
+            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
