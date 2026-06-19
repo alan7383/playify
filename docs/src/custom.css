@@ -1,0 +1,19 @@
+:root {
+  /* Playify TUI Blue Accent (#3498DB) */
+  --sl-color-accent-low: #0D2137;
+  --sl-color-accent: #3498DB;
+  --sl-color-accent-high: #AED6F1;
+
+  /* Playify Dark Deep Navy Background */
+  --sl-color-bg: #070f1c; /* Even darker than BLUE_DEEP for contrast */
+  --sl-color-bg-nav: #0A1628; /* BLUE_DEEP */
+  --sl-color-bg-sidebar: #0A1628;
+  
+  /* Code blocks and UI elements */
+  --sl-color-bg-inline-code: #1B3A5C;
+  --sl-color-gray-6: #1B3A5C; /* borders */
+  --sl-color-gray-5: #2471A3; /* lighter borders */
+  
+  /* Text colors */
+  --sl-color-text-accent: #5DADE2;
+}
