@@ -22,10 +22,10 @@
 
 Playify has been completely rewritten to provide a seamless, robust, and beautiful experience directly from your terminal.
 
-* **Interactive TUI Dashboard**: Monitor resources, queue length, active players, and logs in real-time through a beautiful ASCII interface.
-* **Built-in Auto-Updater**: Keep your bot up to date directly from the dashboard. No `git pull` or manual downloads required.
-* **One-Click Installer**: Double click `start.bat` and let Playify automatically install Python, download FFmpeg, and set up your `.env` configuration.
-* **In-App Settings Menu**: Configure your bot's Discord presence, default volumes, and UI customization without touching a text file.
+* **Interactive TUI dashboard**: Monitor resources, queue length, active players, and logs in real-time through a beautiful ASCII interface.
+* **Built-in auto-updater**: Keep your bot up to date directly from the dashboard. No `git pull` or manual downloads required.
+* **One-click installer**: Run the setup script and let Playify automatically install Python, download FFmpeg, and set up your `.env` configuration.
+* **In-app settings menu**: Configure your bot's Discord presence, default volumes, and UI customization without touching a text file.
 
 <p align="center">
   <img src="assets/dashboard_preview.png" alt="Playify TUI Dashboard" width="900">
