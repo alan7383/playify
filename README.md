@@ -88,6 +88,17 @@ Type `/play <url or query>` and let it run.
 </details>
 
 <details>
+<summary><b>[ Linux ]</b></summary>
+
+Playify natively supports Linux with an automated setup script.
+
+1. Clone the repository: `git clone https://github.com/alan7383/playify.git`
+2. Enter the directory: `cd playify`
+3. Run the bootstrapper: `bash start.sh`
+4. The script will set up your virtual environment, automatically download a local copy of FFmpeg, and launch the Dashboard.
+</details>
+
+<details>
 <summary><b>[ Docker ]</b></summary>
 
 ```bash
