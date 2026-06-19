@@ -230,10 +230,47 @@ class PlayifyBot(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    # Override the close() method to add our save logic
+    # Override the close() method to add our save logic and gracefully kill zombies
     async def close(self):
-        # Execute our save function before shutting down
+        logger.info("Initiating graceful shutdown...")
+        # 1. Save database state
         await save_all_states()
+        
+        # 2. Disconnect all voice clients to forcefully stop ffmpeg streams
+        for vc in self.voice_clients:
+            try:
+                await vc.disconnect(force=True)
+            except Exception as e:
+                logger.error(f"Failed to disconnect voice client: {e}")
+                
+        # 3. Shutdown process pool (yt-dlp futures)
+        global process_pool
+        if process_pool:
+            logger.info("Shutting down process pool...")
+            process_pool.shutdown(wait=False, cancel_futures=True)
+
+        # 4. Clean up any remaining zombie child processes (ffmpeg, yt-dlp)
+        try:
+            current_process = psutil.Process()
+            children = current_process.children(recursive=True)
+            for child in children:
+                try:
+                    logger.info(f"Terminating child process: {child.pid} ({child.name()})")
+                    child.terminate()
+                except psutil.NoSuchProcess:
+                    pass
+            
+            gone, alive = psutil.wait_procs(children, timeout=3)
+            for child in alive:
+                try:
+                    logger.warning(f"Force killing stubborn child process: {child.pid}")
+                    child.kill()
+                except psutil.NoSuchProcess:
+                    pass
+        except Exception as e:
+            logger.error(f"Error during child processes cleanup: {e}")
+
+        logger.info("Shutdown cleanup complete. Closing bot...")
         # Call the original close() method to shut down the bot normally
         await super().close()
 
