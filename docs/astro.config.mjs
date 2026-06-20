@@ -33,6 +33,7 @@ export default defineConfig({
 					label: 'Playback & Features',
 					items: [
 						{ label: 'Commands Reference', slug: 'playback-and-features/commands-reference' },
+						{ label: 'Spotify Integration', slug: 'playback-and-features/spotify-integration' },
 						{ label: '24/7 & Autoplay', slug: 'playback-and-features/24-7-and-autoplay' },
 						{ label: 'Lyrics & Karaoke', slug: 'playback-and-features/lyrics-and-karaoke' },
 					],
