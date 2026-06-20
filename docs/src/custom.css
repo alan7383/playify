@@ -3,8 +3,10 @@
   --sl-color-accent-low: #0D2137;
   --sl-color-accent: #3498DB;
   --sl-color-accent-high: #AED6F1;
+}
 
-  /* Playify Dark Deep Navy Background */
+/* Apply deep navy background ONLY in dark mode */
+:root[data-theme='dark'] {
   --sl-color-bg: #070f1c; /* Even darker than BLUE_DEEP for contrast */
   --sl-color-bg-nav: #0A1628; /* BLUE_DEEP */
   --sl-color-bg-sidebar: #0A1628;
