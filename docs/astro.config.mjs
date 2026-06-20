@@ -3,6 +3,7 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
+// Deploy trigger
 export default defineConfig({
 	site: 'https://alan7383.github.io',
 	base: '/playify',
