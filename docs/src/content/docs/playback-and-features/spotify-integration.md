@@ -7,7 +7,7 @@ Playify has first-class support for Spotify. You can play **Tracks, Albums, and 
 
 Unlike most Discord music bots, **Playify works with Spotify out of the box with zero configuration.**
 
-## The Magic of SpotifyScraper
+## How it works (SpotifyScraper)
 
 Playify achieves this by utilizing a powerful external library called [**SpotifyScraper**](https://github.com/AliAkhtari78/SpotifyScraper). 
 
