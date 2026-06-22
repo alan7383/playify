@@ -356,140 +356,85 @@ async def process_deezer_url(url, interaction):
 
 
 # Process Apple Music URLs
+import aiohttp
+import json
+import re
+from urllib.parse import urlparse, parse_qs
+
 async def process_apple_music_url(url, interaction):
     guild_id = interaction.guild.id
-    logger.info(f"Starting processing for Apple Music URL: {url}")
-
-    clean_url = url.split("?")[0]
-    browser = None
+    logger.info(f"Starting lightweight processing for Apple Music URL: {url}")
 
     try:
-        async with async_playwright() as p:
-            browser = await p.firefox.launch(headless=True)
-            context = await browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0"
-            )
-            page = await context.new_page()
+        # On simule un navigateur basique
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
+        }
 
-            await page.route(
-                "**/*.{png,jpg,jpeg,svg,woff,woff2}", lambda route: route.abort()
-            )
-            logger.info("Optimization: Disabled loading of images and fonts.")
+        async with aiohttp.ClientSession(headers=headers) as session:
+            async with session.get(url, timeout=15) as response:
+                if response.status != 200:
+                    raise ValueError(f"HTTP {response.status} returned by Apple Music.")
+                html = await response.text()
 
-            logger.info("Navigating to the page with a 90 second timeout...")
-            await page.goto(clean_url, wait_until="domcontentloaded", timeout=90000)
-            logger.info("Page loaded. Extracting data...")
+        # 1. Extraire le JSON (Server-Side Rendering)
+        match = re.search(r'<script type="application/json" id="serialized-server-data">(.*?)</script>', html, re.DOTALL)
+        if not match:
+            raise ValueError("Impossible de trouver les données JSON dans la page.")
 
-            tracks = []
-            resource_type = "unknown"
-            path_parts = urlparse(clean_url).path.strip("/").split("/")
+        data = json.loads(match.group(1))
+        tracks = []
+        
+        # 2. Vérifier si on cherche une chanson unique (?i=...)
+        parsed_url = urlparse(url)
+        query_params = parse_qs(parsed_url.query)
+        target_track_id = query_params.get("i", [None])[0]
 
-            if len(path_parts) > 1:
-                if path_parts[1] in ["album", "playlist"]:
-                    resource_type = path_parts[1]
-                elif path_parts[1] == "song":
-                    resource_type = "song"
-
-            logger.info(f"Detected resource type: {resource_type}")
-
-            if resource_type in ["album", "playlist"]:
-                logger.info(
-                    f"Processing as {resource_type}, using row scraping method."
-                )
-                await page.wait_for_selector("div.songs-list-row", timeout=20000)
-                main_artist_name = "Unknown Artist"
-                try:
-                    main_artist_el = await page.query_selector(".headings__subtitles a")
-                    if main_artist_el:
-                        main_artist_name = await main_artist_el.inner_text()
-                except Exception:
-                    logger.warning(
-                        "Could not determine the main artist for the collection."
-                    )
-
-                track_rows = await page.query_selector_all("div.songs-list-row")
-                for row in track_rows:
+        # 3. Parcours robuste du JSON pour trouver les musiques
+        sections = []
+        for item in data.get("data", []):
+            if "data" in item and "sections" in item["data"]:
+                sections.extend(item["data"]["sections"])
+        
+        for section in sections:
+            if section.get("itemKind") == "trackLockup":
+                for item in section.get("items", []):
+                    title = item.get("title")
+                    artist = item.get("artistName")
+                    track_id = None
+                    
                     try:
-                        title_el = await row.query_selector(
-                            "div.songs-list-row__song-name"
-                        )
-                        title = (
-                            await title_el.inner_text() if title_el else "Unknown Title"
-                        )
-
-                        artist_elements = await row.query_selector_all(
-                            "div.songs-list-row__by-line a"
-                        )
-                        if artist_elements:
-                            artist_names = [
-                                await el.inner_text() for el in artist_elements
-                            ]
-                            artist = " & ".join(artist_names)
+                        track_id = item.get("contentDescriptor", {}).get("identifiers", {}).get("storeAdamID")
+                    except Exception:
+                        pass
+                        
+                    if title and artist:
+                        if target_track_id:
+                            # Chanson précise demandée
+                            if str(track_id) == str(target_track_id):
+                                tracks.append((title, artist))
+                                break
                         else:
-                            artist = main_artist_name
+                            # Ajout de toutes les chansons
+                            tracks.append((title, artist))
 
-                        if title != "Unknown Title":
-                            tracks.append((title.strip(), artist.strip()))
-                    except Exception as e:
-                        logger.warning(f"Failed to extract a track row: {e}")
+        if not tracks:
+            raise ValueError("No tracks could be extracted from the Apple Music resource.")
 
-            elif resource_type == "song":
-                logger.info("Processing as single song, using JSON-LD method.")
-                try:
-                    json_ld_selector = 'script[id="schema:song"]'
-                    await page.wait_for_selector(json_ld_selector, timeout=15000)
-
-                    json_ld_content = await page.locator(json_ld_selector).inner_text()
-                    data = json.loads(json_ld_content)
-
-                    title = data["audio"]["name"]
-                    artist = data["audio"]["byArtist"][0]["name"]
-
-                    if title and artist:
-                        logger.info(
-                            f"Successfully extracted from JSON-LD: '{title}' by '{artist}'"
-                        )
-                        tracks.append((title.strip(), artist.strip()))
-                    else:
-                        raise ValueError("JSON-LD data is missing name or artist.")
-                except Exception as e:
-                    logger.warning(
-                        f"JSON-LD method failed ({e}). Falling back to HTML element scraping."
-                    )
-                    title_selector = 'h1[data-testid="song-title"]'
-                    artist_selector = 'span[data-testid="song-subtitle-artists"] a'
-                    await page.wait_for_selector(title_selector, timeout=10000)
-
-                    title = await page.locator(title_selector).first.inner_text()
-                    artist = await page.locator(artist_selector).first.inner_text()
-
-                    if title and artist:
-                        logger.info(
-                            f"Successfully extracted from HTML fallback: '{title}' by '{artist}'"
-                        )
-                        tracks.append((title.strip(), artist.strip()))
-
-            if not tracks:
-                raise ValueError(
-                    "No tracks could be extracted from the Apple Music resource."
-                )
-
-            logger.info(f"Success! {len(tracks)} track(s) extracted.")
-            return tracks
+        logger.info(f"Success! {len(tracks)} track(s) extracted instantly via Server-Side JSON.")
+        return tracks
 
     except Exception as e:
         logger.error(f"Error processing Apple Music URL {url}: {e}", exc_info=True)
-        if "page" in locals() and page and not page.is_closed():
-            await page.screenshot(path="apple_music_scrape_failed.png")
-            logger.info("Screenshot of the error saved.")
+        
+        state = get_guild_state(guild_id)
+        is_kawaii = state.locale == Locale.EN_X_KAWAII
 
         embed = Embed(
             description=get_messages("apple_music_error", guild_id),
-            color=(
-                0xFFB6C1
-                if (get_guild_state(guild_id).locale == Locale.EN_X_KAWAII)
-                else discord.Color.red()
-            ),
+            color=0xFFB6C1 if is_kawaii else discord.Color.red(),
         )
         try:
             if interaction and not interaction.is_expired():
@@ -499,10 +444,6 @@ async def process_apple_music_url(url, interaction):
         except Exception as send_error:
             logger.error(f"Unable to send error message: {send_error}")
         return None
-    finally:
-        if browser:
-            await browser.close()
-            logger.info("Playwright (Apple Music) browser closed successfully.")
 
 
 # Process Tidal URLs
