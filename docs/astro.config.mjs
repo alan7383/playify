@@ -45,6 +45,12 @@ export default defineConfig({
 						{ label: 'Backups & Migrations', slug: 'troubleshooting/backups-migrations' },
 					],
 				},
+				{
+					label: 'Advanced',
+					items: [
+						{ label: 'Scraping Architecture', slug: 'advanced/scraping-architecture' },
+					],
+				},
 			],
 		}),
 	],
