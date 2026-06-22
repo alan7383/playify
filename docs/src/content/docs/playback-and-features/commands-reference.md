@@ -1,9 +1,9 @@
 ---
-title: Commands Reference
+title: Commands reference
 description: Exhaustive list of Playify's slash commands.
 ---
 
-Playify uses Discord's native Slash Commands. Type `/` in your server to see the full list of available commands.
+Playify uses Discord's native slash commands. Type `/` in your server to see the full list of available commands.
 
 ## Playback
 
@@ -28,7 +28,7 @@ Playify uses Discord's native Slash Commands. Type `/` in your server to see the
 | `/volume` | Adjusts the music volume for everyone (0-200%). |
 | `/reconnect` | Refresh the voice connection without losing your place. |
 
-## Queue & Info
+## Queue & info
 
 | Command | Description |
 | :--- | :--- |
@@ -39,7 +39,7 @@ Playify uses Discord's native Slash Commands. Type `/` in your server to see the
 | `/clearqueue` | Clear the current queue. |
 | `/loop` | Enable/disable looping. |
 
-## Features & Modes
+## Features & modes
 
 | Command | Description |
 | :--- | :--- |
@@ -49,7 +49,7 @@ Playify uses Discord's native Slash Commands. Type `/` in your server to see the
 | `/lyrics` | Get song lyrics from Genius. |
 | `/karaoke` | Start a synced karaoke-style lyrics display. |
 
-## Admin & Setup
+## Admin & setup
 
 | Command | Description |
 | :--- | :--- |

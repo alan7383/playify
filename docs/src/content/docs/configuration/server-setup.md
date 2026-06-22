@@ -1,23 +1,23 @@
 ---
-title: Server Setup
+title: Server setup
 description: Setting up the persistent controller and administration.
 ---
 
 Playify comes with powerful administrative commands to help you manage how it interacts with your server.
 
-## Setting up a Music Channel (`/setup controller`)
+## Setting up a music channel (`/setup controller`)
 
-By default, Playify sends ephemeral or standard messages to reply to commands. However, you can create a dedicated music channel with a **Persistent Controller**.
+By default, Playify sends ephemeral or standard messages to reply to commands. However, you can create a dedicated music channel with a **persistent controller**.
 
 ### How to use it:
 1. Create a text channel specifically for the bot (e.g., `#music`).
 2. Type `/setup controller` inside that channel.
-3. Playify will send a beautiful, interactive dashboard message with playback controls (Pause, Skip, Stop, Queue) right in the channel.
+3. Playify will send a beautiful, interactive dashboard message with playback controls (pause, skip, stop, queue) right in the channel.
 
 > [!TIP]
 > The controller is smart! Whenever a new song starts or the queue changes, it will dynamically update itself. It will also "re-anchor" itself to the bottom of the channel if users send other messages.
 
-## Channel Restriction (`/setup allowlist`)
+## Channel restriction (`/setup allowlist`)
 
 If you have a large server, you might want to prevent users from spamming `/play` commands in general chat rooms.
 
@@ -34,7 +34,7 @@ To allow commands everywhere again, run:
 /setup allowlist reset:default
 ```
 
-## Kawaii Mode (`/kaomoji`)
+## Kawaii mode (`/kaomoji`)
 
 As a fun easter egg, administrators can run the `/kaomoji` command.
 This completely overrides the bot's locale strictly to `en-x-kawaii`. 

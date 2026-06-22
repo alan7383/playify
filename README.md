@@ -11,13 +11,13 @@
   <img src="https://img.shields.io/badge/python-3.9+-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.9+">
   <img src="https://img.shields.io/badge/Discord-bot-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord">
   <a href="https://alan7383.github.io/playify/">
-    <img src="https://img.shields.io/badge/📖_Documentation-1B3A5C?style=for-the-badge" alt="Documentation">
+    <img src="https://img.shields.io/badge/Documentation-1B3A5C?style=for-the-badge" alt="Documentation">
   </a>
 </p>
 
 <p align="center">
-  <strong>A minimalist, self-hosted Discord music bot with a powerful TUI Dashboard.</strong><br><br>
-  <a href="https://alan7383.github.io/playify/"><strong>Explore the Official Documentation »</strong></a>
+  <strong>A minimalist, self-hosted Discord music bot with a powerful TUI dashboard.</strong><br><br>
+  <a href="https://alan7383.github.io/playify/"><strong>Explore the official documentation »</strong></a>
 </p>
 
 ---
@@ -37,9 +37,9 @@ Playify has been completely rewritten to provide a seamless, robust, and beautif
 
 ---
 
-### ~ What is this
+### ~ what is this
 
-Playify is an open-source Discord music bot built for simplicity. No web UI, no paywalls, no account required -- just slash commands and music.
+Playify is an open-source Discord music bot built for simplicity. No web interface, no paywalls, no account needed - just slash commands and music.
 
 It supports **YouTube, YouTube Music, SoundCloud, Twitch, Spotify, Deezer, Bandcamp, Apple Music, Tidal, Amazon Music, direct audio links, and local files**.
 
@@ -47,10 +47,10 @@ Type `/play <url or query>` and let it run.
 
 ---
 
-### * Features
+### * features
 
 <details open>
-<summary><b>~ Sources & Playback</b></summary>
+<summary><b>~ sources & playback</b></summary>
 
 * Play from **10+ sources**: YouTube, SoundCloud, Twitch, Spotify, Apple Music, etc.
 * **Direct audio links**: stream any public MP3, FLAC, WAV, or audio URL.
@@ -61,7 +61,7 @@ Type `/play <url or query>` and let it run.
 </details>
 
 <details>
-<summary><b>> Spotify Support</b></summary>
+<summary><b>> spotify support</b></summary>
 
 * Individual tracks.
 * Personal and public playlists.
@@ -69,46 +69,46 @@ Type `/play <url or query>` and let it run.
 </details>
 
 <details>
-<summary><b>+ Extras</b></summary>
+<summary><b>+ extras</b></summary>
 
 * **Lyrics** fetching and display for the current track.
 * **Karaoke mode** with synced lyrics.
 * **24/7 mode** to keep the bot in a channel permanently.
-* **Kawaii Mode** -- toggle cute kaomoji responses with `/kaomoji`.
+* **Kawaii mode** - toggle cute kaomoji responses with `/kaomoji`.
 * **Interactive queue pages**, track removal menus, and a seek interface.
 </details>
 
 ---
 
-### > Install
+### > install
 
-*For the complete installation guide (including Docker configurations), please visit the [Installation Documentation](https://alan7383.github.io/playify/getting-started/installation/).*
+*For the complete installation guide (including Docker configurations), please visit the [installation documentation](https://alan7383.github.io/playify/getting-started/installation/).*
 
 <details open>
-<summary><b>[ Windows - Recommended ]</b></summary>
+<summary><b>[ windows - recommended ]</b></summary>
 
 1. Download the repository as a ZIP and extract it, or clone it via git.
 2. Double-click `start.bat`.
-3. The Playify installer will automatically install Python, download FFmpeg, and prompt you for your Discord Token.
-4. The TUI Dashboard will launch automatically.
+3. The Playify installer will automatically install Python, download FFmpeg, and prompt you for your Discord token.
+4. The TUI dashboard will launch automatically.
 </details>
 
 <details>
-<summary><b>[ Linux ]</b></summary>
+<summary><b>[ linux ]</b></summary>
 
 Playify natively supports Linux with an automated setup script.
 
 1. Clone the repository: `git clone https://github.com/alan7383/playify.git`
 2. Enter the directory: `cd playify`
 3. Run the bootstrapper: `bash start.sh`
-4. The script will set up your virtual environment, automatically download a local copy of FFmpeg, and launch the Dashboard.
+4. The script will set up your virtual environment, automatically download a local copy of FFmpeg, and launch the dashboard.
 </details>
 
 ---
 
-### # Commands
+### # commands
 
-*For a detailed explanation of each feature, check out the [Commands Reference](https://alan7383.github.io/playify/playback-and-features/commands-reference/).*
+*For a detailed explanation of each feature, check out the [commands reference](https://alan7383.github.io/playify/playback-and-features/commands-reference/).*
 
 | Command | Description |
 | :--- | :--- |
@@ -125,39 +125,39 @@ Playify natively supports Linux with an automated setup script.
 
 ---
 
-### @ Troubleshooting
+### @ troubleshooting
 
-* **FFmpeg not found** -- The Windows `start.bat` handles this automatically. For manual setups, ensure FFmpeg 6.1.1 is in your PATH or `bin/` folder.
-* **Spotify errors** -- check your `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` in `.env`.
-* **Bot offline or unresponsive** -- verify your `DISCORD_TOKEN` and bot permissions in the Developer Portal.
+* **FFmpeg not found** - The Windows `start.bat` handles this automatically. For manual setups, ensure FFmpeg 6.1.1 is in your PATH or `bin/` folder.
+* **Spotify errors** - check your `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` in `.env`.
+* **Bot offline or unresponsive** - verify your `DISCORD_TOKEN` and bot permissions in the Developer portal.
 
-👉 **Need more help? Check out our detailed [FAQ & Troubleshooting guide](https://alan7383.github.io/playify/troubleshooting/faq/).**
+> **Need more help? Check out our detailed [FAQ & troubleshooting guide](https://alan7383.github.io/playify/troubleshooting/faq/).**
 
 ---
 
-### + Under the hood
+### + under the hood
 
 * **Python** & **discord.py**
 * **yt-dlp** & **FFmpeg**
-* **Rich** (TUI Dashboard)
+* **Rich** (TUI dashboard)
 * **Playwright** & **SpotifyScraper**
 
 ---
 
-### * Contributing
+### * contributing
 
-Bugs, features, pull requests -- all welcome.
+Bugs, features, pull requests - all welcome.
 
-* **Found a bug?** Open an Issue.
-* **Want a feature?** Fork the repo and open a Pull Request.
+* **Found a bug?** Open an issue.
+* **Want a feature?** Fork the repo and open a pull request.
 * **Like the project?** Star the repository!
 
 ---
 
-### ~ Privacy & License
+### ~ privacy & license
 
 * **Self-hosted only**: all logs stay local to your machine. No telemetry is sent anywhere.
-* MIT License -- do what you want with the code, just be kind.
+* MIT License - do what you want with the code, just be kind.
 
 ---
 

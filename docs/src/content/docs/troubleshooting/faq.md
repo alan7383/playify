@@ -1,5 +1,5 @@
 ---
-title: FAQ & Troubleshooting
+title: FAQ & troubleshooting
 description: Advanced solutions to common issues.
 ---
 
@@ -14,7 +14,7 @@ The first time you play a track from these platforms, the bot has to spawn a hid
 The bot runs its FFmpeg audio processing with `IDLE_PRIORITY_CLASS` (on Windows) or `os.nice(19)` (on Linux/Mac) to ensure it yields CPU time to your other applications. 
 
 If the audio is stuttering in Discord, it is almost **always** a network connection issue between the bot's server and Discord's voice servers.
-1. Try changing the Voice Channel's region in Discord settings.
+1. Try changing the voice channel's region in Discord settings.
 2. If the bot gets stuck in a "zombie state", use the `/reconnect` command.
 
 ## How does `/reconnect` work?

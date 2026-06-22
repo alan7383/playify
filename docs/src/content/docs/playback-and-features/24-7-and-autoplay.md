@@ -1,11 +1,11 @@
 ---
-title: 24/7 & Autoplay
+title: 24/7 & autoplay
 description: How Playify handles infinite queues and non-stop music.
 ---
 
 Playify comes equipped with powerful features designed to keep the music going forever, perfect for Lo-Fi radios, community hubs, or parties.
 
-## 24/7 Mode (`/24_7`)
+## 24/7 mode (`/24_7`)
 
 Unlike many bots that disconnect after a few minutes of inactivity, Playify allows you to force the bot to stay in the voice channel indefinitely.
 

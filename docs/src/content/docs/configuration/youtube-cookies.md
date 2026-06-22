@@ -1,6 +1,6 @@
 ---
-title: YouTube Cookies
-description: How to bypass YouTube's 403 Forbidden errors and Age Restrictions.
+title: YouTube cookies
+description: How to bypass YouTube's 403 Forbidden errors and age restrictions.
 ---
 
 Because YouTube aggressively targets bots, you may eventually run into `403 Forbidden` or `Sign in to confirm your age` errors when trying to play YouTube tracks.
@@ -18,7 +18,7 @@ Playify looks for 5 specific files in its root folder:
 
 When you play a song, the bot will randomly pick one of these files and use it to authenticate the request as if it were a real browser. By rotating between multiple accounts (if you provide multiple files), you drastically reduce the chance of getting IP-banned or flagged by YouTube.
 
-## Extracting your Cookies
+## Extracting your cookies
 
 To provide these cookies to Playify, follow these steps:
 
