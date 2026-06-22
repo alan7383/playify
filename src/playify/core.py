@@ -24,7 +24,6 @@ from urllib.parse import urlparse, parse_qs, quote_plus
 from cachetools import TTLCache
 import logging
 import requests
-from playwright.async_api import async_playwright
 from concurrent.futures import ProcessPoolExecutor
 from src.i18n_translator import I18nTranslator, Locale
 from typing import Optional

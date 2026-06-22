@@ -50,9 +50,6 @@ export PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # Installation silencieuse des dépendances
 pip install -r requirements.txt -q
-# Ensure Playwright browsers are installed (quietly)
-playwright install chromium > /dev/null 2>&1
-
 # 5. FFmpeg will be handled by the Python TUI directly (downloaded to bin/)
 
 # 6. Launch TUI

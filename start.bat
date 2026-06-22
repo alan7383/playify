@@ -227,13 +227,12 @@ if errorlevel 1 goto install_deps
 
 call :check_required_imports
 if not errorlevel 1 (
-    "%PYTHON%" -m playwright install >nul 2>&1
     exit /b 0
 )
 goto install_deps
 
 :check_required_imports
-"%PYTHON%" -c "import cachetools, discord, dotenv, lyricsgenius, nacl, psutil, requests, spotipy, syncedlyrics, yt_dlp, rich, aiosqlite; from playwright.async_api import async_playwright; from spotify_scraper import SpotifyClient" >nul 2>&1
+"%PYTHON%" -c "import cachetools, discord, dotenv, lyricsgenius, nacl, psutil, requests, spotipy, syncedlyrics, yt_dlp, rich, aiosqlite; from spotify_scraper import SpotifyClient" >nul 2>&1
 exit /b %ERRORLEVEL%
 
 :install_deps
@@ -249,7 +248,6 @@ if errorlevel 1 goto deps_failed
 call :check_required_imports
 if errorlevel 1 goto deps_failed
 
-"%PYTHON%" -m playwright install >nul 2>&1
 exit /b 0
 
 :missing_entrypoint

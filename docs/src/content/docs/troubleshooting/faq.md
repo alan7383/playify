@@ -3,10 +3,6 @@ title: FAQ & troubleshooting
 description: Advanced solutions to common issues.
 ---
 
-## Why does the first Apple Music / Amazon Music track take a few seconds to load?
-
-Playify relies on **Playwright** (a headless browser) to aggressively scrape metadata and streams from protected platforms like Apple Music, Tidal, and Amazon Music. 
-The first time you play a track from these platforms, the bot has to spawn a hidden Chromium process in the background. Subsequent tracks will load much faster because the browser context is already warm.
 
 ## The music is lagging / stuttering
 

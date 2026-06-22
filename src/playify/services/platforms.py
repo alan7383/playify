@@ -4,6 +4,7 @@ from ..core import *
 from ..helpers.common import *
 from ..models.lazy_search import LazySearchItem
 
+
 async def process_spotify_url(url, interaction):
     """
     Processes a Spotify URL with a cascade architecture:
@@ -96,7 +97,8 @@ async def process_spotify_url(url, interaction):
 
             if "playlist" in clean_url:
                 data = await loop.run_in_executor(
-                    None, lambda: spotify_scraper_client.get_playlist(clean_url).to_dict()
+                    None,
+                    lambda: spotify_scraper_client.get_playlist(clean_url).to_dict(),
                 )
                 for item in data.get("tracks", []):
                     track = item.get("track")
@@ -355,18 +357,17 @@ async def process_deezer_url(url, interaction):
         return None
 
 
-# Process Apple Music URLs
 import aiohttp
 import json
 import re
 from urllib.parse import urlparse, parse_qs
+
 
 async def process_apple_music_url(url, interaction):
     guild_id = interaction.guild.id
     logger.info(f"Starting lightweight processing for Apple Music URL: {url}")
 
     try:
-        # On simule un navigateur basique
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -379,37 +380,42 @@ async def process_apple_music_url(url, interaction):
                     raise ValueError(f"HTTP {response.status} returned by Apple Music.")
                 html = await response.text()
 
-        # 1. Extraire le JSON (Server-Side Rendering)
-        match = re.search(r'<script type="application/json" id="serialized-server-data">(.*?)</script>', html, re.DOTALL)
+        match = re.search(
+            r'<script type="application/json" id="serialized-server-data">(.*?)</script>',
+            html,
+            re.DOTALL,
+        )
         if not match:
             raise ValueError("Impossible de trouver les données JSON dans la page.")
 
         data = json.loads(match.group(1))
         tracks = []
-        
-        # 2. Vérifier si on cherche une chanson unique (?i=...)
+
         parsed_url = urlparse(url)
         query_params = parse_qs(parsed_url.query)
         target_track_id = query_params.get("i", [None])[0]
 
-        # 3. Parcours robuste du JSON pour trouver les musiques
         sections = []
         for item in data.get("data", []):
             if "data" in item and "sections" in item["data"]:
                 sections.extend(item["data"]["sections"])
-        
+
         for section in sections:
             if section.get("itemKind") == "trackLockup":
                 for item in section.get("items", []):
                     title = item.get("title")
                     artist = item.get("artistName")
                     track_id = None
-                    
+
                     try:
-                        track_id = item.get("contentDescriptor", {}).get("identifiers", {}).get("storeAdamID")
+                        track_id = (
+                            item.get("contentDescriptor", {})
+                            .get("identifiers", {})
+                            .get("storeAdamID")
+                        )
                     except Exception:
                         pass
-                        
+
                     if title and artist:
                         if target_track_id:
                             # Chanson précise demandée
@@ -421,14 +427,18 @@ async def process_apple_music_url(url, interaction):
                             tracks.append((title, artist))
 
         if not tracks:
-            raise ValueError("No tracks could be extracted from the Apple Music resource.")
+            raise ValueError(
+                "No tracks could be extracted from the Apple Music resource."
+            )
 
-        logger.info(f"Success! {len(tracks)} track(s) extracted instantly via Server-Side JSON.")
+        logger.info(
+            f"Success! {len(tracks)} track(s) extracted instantly via Server-Side JSON."
+        )
         return tracks
 
     except Exception as e:
         logger.error(f"Error processing Apple Music URL {url}: {e}", exc_info=True)
-        
+
         state = get_guild_state(guild_id)
         is_kawaii = state.locale == Locale.EN_X_KAWAII
 
@@ -449,169 +459,99 @@ async def process_apple_music_url(url, interaction):
 # Process Tidal URLs
 async def process_tidal_url(url, interaction):
     guild_id = interaction.guild_id
+    logger.info(f"[Tidal] Starting lightweight HTTP processing for: {url}")
 
-    async def load_and_extract_all_tracks(page):
-        logger.info("Reliable loading begins (track by track)...")
-        total_tracks_expected = 0
-        try:
-            meta_item_selector = 'span[data-test="grid-item-meta-item-count"]'
-            meta_text = await page.locator(meta_item_selector).first.inner_text(
-                timeout=3000
-            )
-            total_tracks_expected = int(re.search(r"\d+", meta_text).group())
-            logger.info(f"Goal: Extract {total_tracks_expected} tracks.")
-        except Exception:
-            logger.warning("Unable to determine the total number of tracks.")
-            total_tracks_expected = 0
-        track_row_selector = "div[data-track-id]"
-        all_tracks = []
-        seen_track_ids = set()
-        stagnation_counter = 0
-        max_loops = 500
-        for i in range(max_loops):
-            if total_tracks_expected > 0 and len(all_tracks) >= total_tracks_expected:
-                logger.info("All expected leads have been found. Early shutdown.")
-                break
-            track_elements = await page.query_selector_all(track_row_selector)
-            if not track_elements and i > 0:
-                break
-            new_tracks_found_in_loop = False
-            for element in track_elements:
-                track_id = await element.get_attribute("data-track-id")
-                if track_id and track_id not in seen_track_ids:
-                    new_tracks_found_in_loop = True
-                    seen_track_ids.add(track_id)
-                    try:
-                        title_el = await element.query_selector(
-                            'span._titleText_51cccae, span[data-test="table-cell-title"]'
-                        )
-                        artist_el = await element.query_selector(
-                            'a._item_39605ae, a[data-test="grid-item-detail-text-title-artist"]'
-                        )
-                        if title_el and artist_el:
-                            title = (
-                                (await title_el.inner_text()).split("<span>")[0].strip()
-                            )
-                            artist = await artist_el.inner_text()
-                            if title and artist:
-                                all_tracks.append((title, artist))
-                    except Exception:
-                        continue
-            if not new_tracks_found_in_loop and i > 1:
-                stagnation_counter += 1
-                if stagnation_counter >= 5:
-                    logger.info("Stable stagnation. End of process.")
-                    break
-            else:
-                stagnation_counter = 0
-            if track_elements:
-                await track_elements[-1].scroll_into_view_if_needed(timeout=10000)
-                await asyncio.sleep(0.75)
-        logger.info(
-            f"Process completed. Final total of unique tracks extracted: {len(all_tracks)}"
-        )
-        return list(dict.fromkeys(all_tracks))
-
-    browser = None  # Initialize the browser to None
     try:
         clean_url = url.split("?")[0]
         parsed_url = urlparse(clean_url)
         path_parts = parsed_url.path.strip("/").split("/")
 
         resource_type = None
-        if "playlist" in path_parts:
-            resource_type = "playlist"
-        elif "album" in path_parts:
-            resource_type = "album"
-        elif "mix" in path_parts:
-            resource_type = "mix"
-        elif "track" in path_parts:
-            resource_type = "track"
-        elif "video" in path_parts:
-            resource_type = "video"
+        resource_id = None
 
-        if resource_type is None:
-            raise ValueError("Tidal URL not supported.")
+        valid_types = ["playlist", "album", "mix", "track", "video"]
+        for i, part in enumerate(path_parts):
+            if part in valid_types and i + 1 < len(path_parts):
+                resource_type = part
+                resource_id = path_parts[i + 1]
+                break
 
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            page = await browser.new_page(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-            )
-            await page.goto(clean_url, wait_until="domcontentloaded")
-            logger.info(f"Navigate to Tidal URL ({resource_type}): {clean_url}")
+        if not resource_type or not resource_id:
+            raise ValueError(f"Tidal URL not supported or could not extract ID: {url}")
 
-            await asyncio.sleep(3)
-            unique_tracks = []
+        token = "txNoH4kkV41MfH25"
+        headers = {
+            "x-tidal-token": token,
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+            "Accept": "application/json"
+        }
 
-            if resource_type in ["playlist", "album", "mix"]:
-                unique_tracks = await load_and_extract_all_tracks(page)
+        all_tracks = []
+        limit = 100
+        offset = 0
 
-            elif resource_type == "track" or resource_type == "video":
-                logger.info(f"Extracting a single media ({resource_type})...")
-                try:
-                    await page.wait_for_selector(
-                        'div[data-test="artist-profile-header"], div[data-test="footer-player"]',
-                        timeout=10000,
-                    )
-                    title_selector = 'span[data-test="now-playing-track-title"], h1[data-test="title"]'
-                    artist_selector = (
-                        'a[data-test="grid-item-detail-text-title-artist"]'
-                    )
-                    title = await page.locator(title_selector).first.inner_text(
-                        timeout=5000
-                    )
-                    artist = await page.locator(artist_selector).first.inner_text(
-                        timeout=5000
-                    )
+        import aiohttp
+        async with aiohttp.ClientSession() as session:
+            while True:
+                if resource_type == "playlist":
+                    api_url = f"https://tidal.com/v1/playlists/{resource_id}/items?offset={offset}&limit={limit}&countryCode=FR"
+                elif resource_type == "album":
+                    api_url = f"https://tidal.com/v1/albums/{resource_id}/items?offset={offset}&limit={limit}&countryCode=FR"
+                elif resource_type == "mix":
+                    api_url = f"https://api.tidal.com/v1/mixes/{resource_id}/items?offset={offset}&limit={limit}&countryCode=FR"
+                elif resource_type == "track":
+                    api_url = f"https://tidal.com/v1/tracks/{resource_id}?countryCode=FR"
+                elif resource_type == "video":
+                    api_url = f"https://tidal.com/v1/videos/{resource_id}?countryCode=FR"
 
-                    if not title or not artist:
-                        raise ValueError("Missing title or artist.")
+                logger.info(f"[Tidal] Fetching API: {api_url}")
+                async with session.get(api_url, headers=headers, timeout=aiohttp.ClientTimeout(total=15)) as resp:
+                    if resp.status != 200:
+                        raise ValueError(f"Tidal API returned HTTP {resp.status}")
+                    data = await resp.json()
 
-                    logger.info(
-                        f"Unique media found: {title.strip()} - {artist.strip()}"
-                    )
-                    unique_tracks = [(title.strip(), artist.strip())]
+                if resource_type in ["playlist", "album", "mix"]:
+                    items = data.get("items", [])
+                    if not items:
+                        break
 
-                except Exception as e:
-                    logger.warning(
-                        f"Direct extraction method failed ({e}), attempting with page title..."
-                    )
-                    try:
-                        page_title = await page.title()
-                        title, artist = "", ""
-                        if " - " in page_title:
-                            parts = page_title.split(" - ")
-                            artist, title = parts[0], parts[1].split(" on TIDAL")[0]
-                        elif " by " in page_title:
-                            parts = page_title.split(" by ")
-                            title, artist = parts[0], parts[1].split(" on TIDAL")[0]
+                    for item in items:
+                        track_data = item.get("item", item) if resource_type in ["playlist", "mix"] else item
+                        title = track_data.get("title")
+                        artist = track_data.get("artist", {}).get("name")
+                        if title and artist:
+                            all_tracks.append((title.strip(), artist.strip()))
 
-                        if not title or not artist:
-                            raise ValueError("The page title format is unknown.")
+                    total_items = data.get("totalNumberOfItems", len(items))
+                    offset += limit
+                    
+                    if offset >= total_items:
+                        break
+                else:
+                    # Single track or video
+                    title = data.get("title")
+                    artist = data.get("artist", {}).get("name")
+                    if title and artist:
+                        all_tracks.append((title.strip(), artist.strip()))
+                    break
 
-                        logger.info(
-                            f"Unique media found via page title: {title.strip()} - {artist.strip()}"
-                        )
-                        unique_tracks = [(title.strip(), artist.strip())]
-                    except Exception as fallback_e:
-                        await page.screenshot(
-                            path=f"tidal_{resource_type}_extraction_failed.png"
-                        )
-                        raise ValueError(
-                            f"All extraction methods failed. Final error: {fallback_e}"
-                        )
+        # Deduplicate
+        seen = set()
+        unique_tracks = []
+        for t in all_tracks:
+            if t not in seen:
+                seen.add(t)
+                unique_tracks.append(t)
 
-            if not unique_tracks:
-                raise ValueError(
-                    "No tracks could be retrieved from the Tidal resource."
-                )
+        if not unique_tracks:
+            raise ValueError("No tracks could be retrieved from the Tidal resource.")
 
-            return unique_tracks
+        logger.info(f"[Tidal] Process completed. Extracted {len(unique_tracks)} track(s). First: {unique_tracks[0]}")
+        return unique_tracks
 
     except Exception as e:
-        logger.error(f"Major error in process_tidal_url for {url}: {e}")
-        if interaction:
+        logger.error(f"[Tidal] Major error in process_tidal_url for {url}: {e}")
+        if interaction and not interaction.is_expired():
             embed = Embed(
                 description=get_messages("tidal_error", guild_id),
                 color=(
@@ -620,21 +560,19 @@ async def process_tidal_url(url, interaction):
                     else discord.Color.red()
                 ),
             )
-            await interaction.followup.send(
-                silent=SILENT_MESSAGES, embed=embed, ephemeral=True
-            )
+            try:
+                await interaction.followup.send(
+                    silent=SILENT_MESSAGES, embed=embed, ephemeral=True
+                )
+            except Exception as send_error:
+                logger.error(f"[Tidal] Unable to send error message: {send_error}")
         return None
-    finally:
-        if browser:
-            await browser.close()
-            logger.info("Playwright (Tidal) browser closed properly.")
 
 
 async def process_amazon_music_url(url, interaction):
     guild_id = interaction.guild_id
     logger.info(f"[Amazon Music] Starting lightweight HTTP processing for: {url}")
 
-    # --- Helper: recursively extract track tuples from the giant JSON response ---
     def _extract_tracks_recursive(obj, results):
         """
         Walks the JSON tree and collects (title, artist) tuples from nodes
@@ -648,29 +586,42 @@ async def process_amazon_music_url(url, interaction):
             artist_name = obj.get("artistName")
 
             if primary and secondary:
-                if isinstance(primary, dict): primary = primary.get("text", "")
-                if isinstance(secondary, dict): secondary = secondary.get("text", "")
+                if isinstance(primary, dict):
+                    primary = primary.get("text", "")
+                if isinstance(secondary, dict):
+                    secondary = secondary.get("text", "")
                 if primary and secondary:
                     results.append((str(primary).strip(), str(secondary).strip()))
             elif track_name and artist_name:
                 results.append((str(track_name).strip(), str(artist_name).strip()))
 
             for value in obj.values():
-                if isinstance(value, str) and value.startswith('{"@context":"https://schema.org"'):
+                if isinstance(value, str) and value.startswith(
+                    '{"@context":"https://schema.org"'
+                ):
                     try:
                         import json
+
                         data = json.loads(value)
                         if data.get("@type") == "MusicAlbum" and "track" in data:
-                            album_artist = data.get("byArtist", {}).get("name", "Unknown Artist")
+                            album_artist = data.get("byArtist", {}).get(
+                                "name", "Unknown Artist"
+                            )
                             for track in data.get("track", []):
                                 t_name = track.get("name")
                                 if t_name:
-                                    results.append((str(t_name).strip(), str(album_artist).strip()))
+                                    results.append(
+                                        (str(t_name).strip(), str(album_artist).strip())
+                                    )
                         elif data.get("@type") == "MusicRecording":
                             t_name = data.get("name")
-                            t_artist = data.get("byArtist", {}).get("name", "Unknown Artist")
+                            t_artist = data.get("byArtist", {}).get(
+                                "name", "Unknown Artist"
+                            )
                             if t_name:
-                                results.append((str(t_name).strip(), str(t_artist).strip()))
+                                results.append(
+                                    (str(t_name).strip(), str(t_artist).strip())
+                                )
                     except Exception:
                         pass
                 _extract_tracks_recursive(value, results)
@@ -693,14 +644,12 @@ async def process_amazon_music_url(url, interaction):
         return result
 
     try:
-        # === STEP 1: Extract the domain from the URL ===
         parsed = urlparse(url)
-        domain = parsed.netloc  # e.g. music.amazon.fr
+        domain = parsed.netloc
         if not domain:
             raise ValueError(f"Could not extract domain from URL: {url}")
         logger.info(f"[Amazon Music] Domain extracted: {domain}")
 
-        # Build the deeplink path from the original URL
         deeplink_path = parsed.path
         if parsed.query:
             deeplink_path += f"?{parsed.query}"
@@ -711,11 +660,10 @@ async def process_amazon_music_url(url, interaction):
             "Chrome/125.0.0.0 Safari/537.36"
         )
 
-        # Use a cookie jar to persist session-id across requests
         import aiohttp
+
         jar = aiohttp.CookieJar()
         async with aiohttp.ClientSession(cookie_jar=jar) as session:
-            # === STEP 2: GET config.json for deviceId and cookies ===
             config_url = f"https://{domain}/config.json"
             logger.info(f"[Amazon Music] Fetching config from: {config_url}")
 
@@ -729,9 +677,7 @@ async def process_amazon_music_url(url, interaction):
                 timeout=aiohttp.ClientTimeout(total=15),
             ) as config_resp:
                 if config_resp.status != 200:
-                    raise ValueError(
-                        f"config.json returned HTTP {config_resp.status}"
-                    )
+                    raise ValueError(f"config.json returned HTTP {config_resp.status}")
                 config_data = await config_resp.json(content_type=None)
 
             device_id = config_data.get("deviceId", "")
@@ -741,24 +687,24 @@ async def process_amazon_music_url(url, interaction):
             csrf_ts = csrf.get("ts", csrf.get("timestamp", ""))
             csrf_rnd = csrf.get("rnd", csrf.get("rndNonce", ""))
             version = config_data.get("version", "1.0")
-            
-            # The API endpoint is determined by the region, typically eu.web.skill.music.a2z.com for FR
+
             show_home_url = "https://eu.web.skill.music.a2z.com/api/showHome"
 
-            # === STEP 3: POST to showHome with properly formatted interface objects ===
             import time
             import uuid
-            
+
             deeplink_obj = {
                 "interface": "DeeplinkInterface.v1_0.DeeplinkClientInformation",
-                "deeplink": deeplink_path
+                "deeplink": deeplink_path,
             }
 
             inner_headers = {
-                "x-amzn-authentication": json.dumps({
-                    "interface": "ClientAuthenticationInterface.v1_0.ClientTokenElement",
-                    "accessToken": ""
-                }),
+                "x-amzn-authentication": json.dumps(
+                    {
+                        "interface": "ClientAuthenticationInterface.v1_0.ClientTokenElement",
+                        "accessToken": "",
+                    }
+                ),
                 "x-amzn-device-model": "WEBPLAYER",
                 "x-amzn-device-width": "1920",
                 "x-amzn-device-family": "WebPlayer",
@@ -773,12 +719,14 @@ async def process_amazon_music_url(url, interaction):
                 "x-amzn-application-version": version,
                 "x-amzn-device-time-zone": "Europe/Paris",
                 "x-amzn-timestamp": str(int(time.time() * 1000)),
-                "x-amzn-csrf": json.dumps({
-                    "interface": "CSRFInterface.v1_0.CSRFHeaderElement",
-                    "token": csrf_token,
-                    "timestamp": csrf_ts,
-                    "rndNonce": csrf_rnd,
-                }),
+                "x-amzn-csrf": json.dumps(
+                    {
+                        "interface": "CSRFInterface.v1_0.CSRFHeaderElement",
+                        "token": csrf_token,
+                        "timestamp": csrf_ts,
+                        "rndNonce": csrf_rnd,
+                    }
+                ),
                 "x-amzn-music-domain": domain,
                 "x-amzn-referer": "",
                 "x-amzn-affiliate-tags": "",
@@ -791,10 +739,12 @@ async def process_amazon_music_url(url, interaction):
                 "x-amzn-age-band": "",
             }
 
-            payload = json.dumps({
-                "deeplink": json.dumps(deeplink_obj),
-                "headers": json.dumps(inner_headers),
-            })
+            payload = json.dumps(
+                {
+                    "deeplink": json.dumps(deeplink_obj),
+                    "headers": json.dumps(inner_headers),
+                }
+            )
 
             post_headers = {
                 "User-Agent": user_agent,
@@ -819,7 +769,6 @@ async def process_amazon_music_url(url, interaction):
                     )
                 api_data = await api_resp.json(content_type=None)
 
-        # === STEP 4: Recursively extract tracks from the response ===
         raw_tracks = []
         _extract_tracks_recursive(api_data, raw_tracks)
 
@@ -828,7 +777,6 @@ async def process_amazon_music_url(url, interaction):
                 "No tracks found. The URL may be invalid or completely region-locked."
             )
 
-        # Clean up track strings and deduplicate
         cleaned_tracks = [
             (_clean_track_text(title), _clean_track_text(artist))
             for title, artist in raw_tracks
@@ -837,9 +785,7 @@ async def process_amazon_music_url(url, interaction):
         tracks = _deduplicate_ordered(cleaned_tracks)
 
         if not tracks:
-            raise ValueError(
-                "All extracted tracks were empty after cleaning."
-            )
+            raise ValueError("All extracted tracks were empty after cleaning.")
 
         logger.info(
             f"[Amazon Music] Done! {len(tracks)} unique track(s) extracted. "
@@ -848,9 +794,7 @@ async def process_amazon_music_url(url, interaction):
         return tracks
 
     except Exception as e:
-        logger.error(
-            f"[Amazon Music] Error processing {url}: {e}", exc_info=True
-        )
+        logger.error(f"[Amazon Music] Error processing {url}: {e}", exc_info=True)
 
         embed = Embed(
             description=get_messages("amazon_music_error", guild_id),

@@ -131,7 +131,7 @@ Playify natively supports Linux with an automated setup script.
 * **Spotify errors** - check your `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` in `.env`.
 * **Bot offline or unresponsive** - verify your `DISCORD_TOKEN` and bot permissions in the Developer portal.
 
-> **Need more help? Check out our detailed [FAQ & troubleshooting guide](https://alan7383.github.io/playify/troubleshooting/faq/).**
+> **Need more help? Check out my detailed [FAQ & troubleshooting guide](https://alan7383.github.io/playify/troubleshooting/faq/).**
 
 ---
 
@@ -140,7 +140,7 @@ Playify natively supports Linux with an automated setup script.
 * **Python** & **discord.py**
 * **yt-dlp** & **FFmpeg**
 * **Rich** (TUI dashboard)
-* **Playwright** & **SpotifyScraper**
+* **aiohttp** & **SpotifyScraper**
 
 ---
 

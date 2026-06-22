@@ -59,11 +59,3 @@ Playify automatically downloads FFmpeg during `start.bat` and `start.sh` executi
 ### FFmpeg (manual installation)
 - **Windows**: download [FFmpeg](https://ffmpeg.org/download.html), extract it, and add the `bin` folder to your system PATH.
 - **Linux**: install via package manager: `sudo apt install ffmpeg`.
-
-### Playwright (Apple/Tidal/Amazon Music)
-Playify uses Playwright (a headless browser engine) to aggressively scrape platforms like Apple Music, Tidal, and Amazon Music.
-If you have errors playing links from these platforms, or if you installed Playify manually without the scripts, you must install the browsers:
-```bash
-playwright install
-```
-*(On Linux, you may also need system dependencies: `playwright install-deps`)*
