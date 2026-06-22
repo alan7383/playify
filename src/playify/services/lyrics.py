@@ -1,47 +1,108 @@
 """Lyrics fetching services."""
 
+import aiohttp
+import urllib.parse
+import re
 from ..core import *
 from ..helpers.common import *
-from ..ui.interactions import LyricsRetryView, LyricsView
 
-async def fetch_and_display_genius_lyrics(
+async def fetch_lrclib(query: str, needs_synced: bool = False) -> str | None:
+    """
+    Search for lyrics on LRCLIB.
+    Returns a string (LRC or plain text) or None if nothing is found.
+    """
+    url = f"https://lrclib.net/api/search?q={urllib.parse.quote(query)}"
+    headers = {
+        "User-Agent": "PlayifyBot/2.0 (Discord Music Bot - https://github.com/alan7383/playify)"
+    }
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers, timeout=15.0) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    if not data:
+                        return None
+
+                    for track in data:
+                        if needs_synced and track.get("syncedLyrics"):
+                            return track["syncedLyrics"]
+                        elif not needs_synced:
+                            lyrics = track.get("plainLyrics") or track.get("syncedLyrics")
+                            if lyrics:
+                                return lyrics
+    except asyncio.TimeoutError:
+        logger.warning(f"LRCLIB fetch timed out for '{query}'")
+    except Exception as e:
+        logger.warning(f"LRCLIB fetch failed for '{query}': {type(e).__name__} - {e}")
+
+    return None
+
+
+async def fetch_and_display_lyrics(
     interaction: discord.Interaction, fallback_message: str = None
 ):
-    """Fetches, formats, and displays lyrics using ONLY the authenticated Genius API to avoid 403 errors."""
+    """Fetches, formats, and displays lyrics using LRCLIB first, then Genius."""
+    from ..ui.interactions import LyricsRetryView, LyricsView
     guild_id = interaction.guild_id
     state = get_guild_state(guild_id)
     music_player = state.music_player
     is_kawaii = state.locale == Locale.EN_X_KAWAII
     loop = asyncio.get_running_loop()
 
-    if not genius:
-        return await interaction.followup.send(
-            get_messages("api.genius.not_configured", interaction.guild_id),
-            silent=SILENT_MESSAGES,
-            ephemeral=True,
-        )
-
     clean_title, artist_name = get_cleaned_song_info(
         music_player.current_info, guild_id
     )
     precise_query = f"{clean_title} {artist_name}"
 
+    lyrics = None
+    song_url = None
+    song_title = clean_title
+
     try:
-        logger.info(f"Attempting authenticated Genius API search: '{precise_query}'")
+        logger.info(f"Attempting LRCLIB API search for plain lyrics: '{precise_query}'")
+        raw_lrclib = await fetch_lrclib(precise_query, needs_synced=False)
 
-        search_result = await loop.run_in_executor(
-            None, lambda: genius.search_songs(precise_query, per_page=5)
-        )
+        if raw_lrclib:
+            lyrics = re.sub(r"\[\d{2}:\d{2}\.\d{2,3}\]", "", raw_lrclib)
+            lyrics = re.sub(r"\n\s*\n", "\n\n", lyrics).strip()
+            song_url = (
+                f"https://lrclib.net/search?q={urllib.parse.quote(precise_query)}"
+            )
 
-        song_info = None
-        if search_result and search_result.get("hits"):
-            song_info = search_result["hits"][0]["result"]
+        elif genius:
+            logger.info("LRCLIB failed. Attempting authenticated Genius API search.")
+            search_result = await loop.run_in_executor(
+                None, lambda: genius.search_songs(precise_query, per_page=5)
+            )
 
-        if not song_info:
+            song_info = None
+            if search_result and search_result.get("hits"):
+                song_info = search_result["hits"][0]["result"]
+
+            if song_info:
+                song_object = await loop.run_in_executor(
+                    None, lambda: genius.search_song(song_id=song_info["id"])
+                )
+                if song_object and song_object.lyrics:
+                    raw_lyrics = song_object.lyrics
+                    lines = raw_lyrics.split("\n")
+                    cleaned_lines = [
+                        line
+                        for line in lines
+                        if "contributor" not in line.lower()
+                        and "lyrics" not in line.lower()
+                        and "embed" not in line.lower()
+                    ]
+                    lyrics = "\n".join(cleaned_lines).strip()
+                    song_url = song_object.url
+                    song_title = song_object.title
+
+        if not lyrics:
             error_title = get_messages("lyrics.error.not_found.title", guild_id)
             error_desc = get_messages(
                 "lyrics.error.not_found.description", guild_id, query=precise_query
-            )  # On passe la variable ici
+            )
             error_embed = Embed(
                 title=error_title,
                 description=error_desc,
@@ -57,28 +118,6 @@ async def fetch_and_display_genius_lyrics(
             )
             return
 
-        logger.info(
-            f"Found song: {song_info['full_title']}. Fetching lyrics from URL: {song_info['url']}"
-        )
-        song_object = await loop.run_in_executor(
-            None, lambda: genius.search_song(song_id=song_info["id"])
-        )
-
-        if not song_object or not song_object.lyrics:
-            raise ValueError(f"Could not retrieve lyrics for song ID {song_info['id']}")
-
-        lyrics = song_object.lyrics
-
-        lines = lyrics.split("\n")
-        cleaned_lines = [
-            line
-            for line in lines
-            if "contributor" not in line.lower()
-            and "lyrics" not in line.lower()
-            and "embed" not in line.lower()
-        ]
-        lyrics = "\n".join(cleaned_lines).strip()
-
         pages = []
         current_page_content = ""
         for line in lyrics.split("\n"):
@@ -89,9 +128,9 @@ async def fetch_and_display_genius_lyrics(
         if current_page_content.strip():
             pages.append(f"```{current_page_content.strip()}```")
 
-        base_embed = base_embed = Embed(
-            title=get_messages("lyrics.embed.title", guild_id, title=song_object.title),
-            url=song_object.url,
+        base_embed = Embed(
+            title=get_messages("lyrics.embed.title", guild_id, title=song_title),
+            url=song_url,
             color=0xB5EAD7 if is_kawaii else discord.Color.green(),
         )
         if fallback_message:
@@ -109,12 +148,10 @@ async def fetch_and_display_genius_lyrics(
         view.message = message
 
     except Exception as e:
-        logger.error(
-            f"Error in authenticated lyrics fetch for '{precise_query}': {e}",
-            exc_info=True,
-        )
-        await interaction.followup.send(
-            get_messages("api.lyrics.generic_fetch_error", interaction.guild_id),
-            silent=SILENT_MESSAGES,
-            ephemeral=True,
-        )
+        logger.error(f"Error in lyrics fetch for '{precise_query}': {e}", exc_info=True)
+        if not interaction.is_expired():
+            await interaction.followup.send(
+                get_messages("api.lyrics.generic_fetch_error", interaction.guild_id),
+                silent=SILENT_MESSAGES,
+                ephemeral=True,
+            )

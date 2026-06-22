@@ -4,7 +4,7 @@ from ..core import *
 from ..helpers.common import *
 from ..helpers.url_utils import *
 from ..models.lazy_search import LazySearchItem
-from ..services.lyrics import fetch_and_display_genius_lyrics
+from ..services.lyrics import fetch_and_display_lyrics, fetch_lrclib
 from ..services.platforms import *
 from ..services.playback import *
 from ..services.voice import *
@@ -38,7 +38,21 @@ async def lyrics(interaction: discord.Interaction):
         )
 
     await interaction.response.defer()
-    await fetch_and_display_genius_lyrics(interaction)
+    await fetch_and_display_lyrics(interaction)
+
+
+def _syncedlyrics_worker(query: str):
+    """Worker function to run syncedlyrics search in a separate process with a strict network timeout."""
+    import socket
+    import syncedlyrics
+    old_timeout = socket.getdefaulttimeout()
+    socket.setdefaulttimeout(5.0)
+    try:
+        return syncedlyrics.search(query)
+    except Exception:
+        return None
+    finally:
+        socket.setdefaulttimeout(old_timeout)
 
 
 @bot.tree.command(
@@ -86,24 +100,29 @@ async def karaoke(interaction: discord.Interaction):
         )
         loop = asyncio.get_running_loop()
         lrc = None
+        precise_query = f"{clean_title} {artist_name}"
 
-        # Attempt 1: Precise search
-        try:
-            precise_query = f"{clean_title} {artist_name}"
-            logger.info(f"Attempting precise synced lyrics search: '{precise_query}'")
-            lrc = await asyncio.wait_for(
-                loop.run_in_executor(None, syncedlyrics.search, precise_query),
-                timeout=7.0,
-            )
-        except (asyncio.TimeoutError, Exception):
-            logger.warning("Precise synced search failed or timed out.")
+        # Attempt 1: LRCLIB (Ultra-fast and stable)
+        logger.info(f"Attempting LRCLIB synced lyrics search: '{precise_query}'")
+        lrc = await fetch_lrclib(precise_query, needs_synced=True)
+        
+        # Attempt 2: Fallback to Precise search (syncedlyrics)
+        if not lrc:
+            try:
+                logger.info(f"LRCLIB failed. Attempting syncedlyrics precise search: '{precise_query}'")
+                lrc = await asyncio.wait_for(
+                    loop.run_in_executor(process_pool, _syncedlyrics_worker, precise_query),
+                    timeout=7.0,
+                )
+            except (asyncio.TimeoutError, Exception):
+                logger.warning("Precise synced search failed or timed out.")
 
-        # Attempt 2: Broad search
+        # Attempt 3: Fallback to Broad search (syncedlyrics)
         if not lrc:
             try:
                 logger.info(f"Trying broad search: '{clean_title}'")
                 lrc = await asyncio.wait_for(
-                    loop.run_in_executor(None, syncedlyrics.search, clean_title),
+                    loop.run_in_executor(process_pool, _syncedlyrics_worker, clean_title),
                     timeout=7.0,
                 )
             except (asyncio.TimeoutError, Exception):
@@ -546,7 +565,7 @@ async def play_files(
             await attachment.save(file_path)
             logger.info(f"File saved for guild {guild_id}: {file_path}")
 
-            duration = get_file_duration(file_path)
+            duration = await get_file_duration(file_path)
 
             queue_item = {
                 "url": file_path,

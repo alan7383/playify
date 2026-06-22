@@ -8,6 +8,12 @@ async def fetch_video_info_with_retry(query: str, ydl_opts_override=None):
     Fetches video info using yt-dlp, with a robust retry mechanism for age-restricted content.
     This is the new universal function for all online fetching.
     """
+    cache_key = f"{query}_{str(ydl_opts_override)}"
+    
+    if cache_key in url_cache:
+        logger.info(f"Using cached info for: {query[:50]}")
+        return url_cache[cache_key]
+
     base_ydl_opts = {
         "format": "bestaudio[acodec=opus]/bestaudio/best",
         "quiet": True,
@@ -22,7 +28,9 @@ async def fetch_video_info_with_retry(query: str, ydl_opts_override=None):
     try:
         # First attempt: no cookies
         logger.info(f"Fetching info for '{query[:100]}' (no cookies).")
-        return await run_ydl_with_low_priority(ydl_opts, query)
+        result = await run_ydl_with_low_priority(ydl_opts, query)
+        url_cache[cache_key] = result
+        return result
     except yt_dlp.utils.DownloadError as e:
         error_str = str(e).lower()
         # Check for age restriction errors OR bot detection
@@ -43,9 +51,11 @@ async def fetch_video_info_with_retry(query: str, ydl_opts_override=None):
             for cookie_name in cookies_to_try:
                 try:
                     logger.info(f"Retrying with cookie: {cookie_name}")
-                    return await run_ydl_with_low_priority(
+                    result = await run_ydl_with_low_priority(
                         ydl_opts, query, specific_cookie_file=cookie_name
                     )
+                    url_cache[cache_key] = result
+                    return result
                 except Exception as cookie_e:
                     logger.warning(
                         f"Cookie '{cookie_name}' failed: {str(cookie_e)[:150]}"

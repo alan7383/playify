@@ -10,10 +10,14 @@
   </a>
   <img src="https://img.shields.io/badge/python-3.9+-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.9+">
   <img src="https://img.shields.io/badge/Discord-bot-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord">
+  <a href="https://alan7383.github.io/playify/">
+    <img src="https://img.shields.io/badge/📖_Documentation-1B3A5C?style=for-the-badge" alt="Documentation">
+  </a>
 </p>
 
 <p align="center">
-  <strong>A minimalist, self-hosted Discord music bot with a powerful TUI Dashboard.</strong>
+  <strong>A minimalist, self-hosted Discord music bot with a powerful TUI Dashboard.</strong><br><br>
+  <a href="https://alan7383.github.io/playify/"><strong>Explore the Official Documentation »</strong></a>
 </p>
 
 ---
@@ -78,6 +82,8 @@ Type `/play <url or query>` and let it run.
 
 ### > Install
 
+*For the complete installation guide (including Docker configurations), please visit the [Installation Documentation](https://alan7383.github.io/playify/getting-started/installation/).*
+
 <details open>
 <summary><b>[ Windows - Recommended ]</b></summary>
 
@@ -98,49 +104,24 @@ Playify natively supports Linux with an automated setup script.
 4. The script will set up your virtual environment, automatically download a local copy of FFmpeg, and launch the Dashboard.
 </details>
 
-<details>
-<summary><b>[ Docker ]</b></summary>
-
-```bash
-git clone https://github.com/alan7383/playify.git
-cd playify
-cp .env.example .env
-```
-
-Edit `.env` and fill in your tokens, then start the bot:
-
-```bash
-docker compose up -d --build
-```
-</details>
-
 ---
 
 ### # Commands
+
+*For a detailed explanation of each feature, check out the [Commands Reference](https://alan7383.github.io/playify/playback-and-features/commands-reference/).*
 
 | Command | Description |
 | :--- | :--- |
 | `/play <url/query>` | Add a song or playlist. Supports direct audio links. |
 | `/search <query>` | Search and choose from the top results. |
 | `/play-files <file(s)>` | Play one or more uploaded audio/video files. |
-| `/playnext <query/file>` | Add a song to the front of the queue. |
-| `/pause` / `/resume` | Pause or resume playback. |
-| `/skip` | Skip the current track. |
-| `/stop` | Stop playback, clear queue, disconnect. |
-| `/nowplaying` | Show current track info. |
-| `/seek` | Interactive seek, fast-forward, or rewind menu. |
 | `/queue` | Show the queue with interactive pages. |
-| `/remove` | Open a menu to remove tracks from the queue. |
-| `/shuffle` | Shuffle the queue. |
-| `/clearqueue` | Clear all songs from the queue. |
-| `/loop` | Toggle looping for the current track. |
-| `/autoplay` | Toggle autoplay when the queue ends. |
-| `/24_7 <mode>` | Keep the bot in the channel (`normal`, `auto`, `off`). |
-| `/filter` | Apply real-time audio filters. |
 | `/lyrics` | Fetch and display lyrics for the current song. |
 | `/karaoke` | Start a karaoke session with synced lyrics. |
+| `/24_7 <mode>` | Keep the bot in the channel (`normal`, `auto`, `off`). |
 | `/reconnect` | Refresh the voice connection without losing your place. |
-| `/kaomoji` | Toggle cute kaomoji responses. `(ADMIN)` |
+
+*(And many more...)*
 
 ---
 
@@ -150,11 +131,7 @@ docker compose up -d --build
 * **Spotify errors** -- check your `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` in `.env`.
 * **Bot offline or unresponsive** -- verify your `DISCORD_TOKEN` and bot permissions in the Developer Portal.
 
----
-
-### ~ Privacy
-
-* **Self-hosted only**: all logs stay local to your machine. No telemetry is sent anywhere.
+👉 **Need more help? Check out our detailed [FAQ & Troubleshooting guide](https://alan7383.github.io/playify/troubleshooting/faq/).**
 
 ---
 
@@ -177,9 +154,10 @@ Bugs, features, pull requests -- all welcome.
 
 ---
 
-### ~ License
+### ~ Privacy & License
 
-MIT License -- do what you want with the code, just be kind.
+* **Self-hosted only**: all logs stay local to your machine. No telemetry is sent anywhere.
+* MIT License -- do what you want with the code, just be kind.
 
 ---
 

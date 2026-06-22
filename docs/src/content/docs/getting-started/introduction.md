@@ -27,8 +27,7 @@ Playify has been completely rewritten in V2 to provide a seamless, robust, and b
 
 ## Extras
 
-* **Lyrics** fetching and display for the current track.
-* **Karaoke mode** with synced lyrics.
+* **Out-of-the-box lyrics and karaoke support** (no API keys required).
 * **24/7 mode** to keep the bot in a channel permanently.
 * **Kawaii Mode**: toggle cute kaomoji responses with `/kaomoji`.
 * **Interactive queue pages**, track removal menus, and a seek interface.

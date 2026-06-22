@@ -20,3 +20,4 @@ python-dotenv  # <-- NEW
 cachetools
 psutil
 rich
+aiosqlite

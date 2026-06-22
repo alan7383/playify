@@ -67,31 +67,19 @@ def get_track_display_info(track, guild_id: int = None) -> dict:
         "source_type": "invalid",
     }
 
-def get_file_duration(file_path: str) -> float:
+async def get_file_duration(file_path: str) -> float:
     """Uses ffprobe to get the duration of a local file in seconds."""
-    command = [
-        "ffprobe",
-        "-v",
-        "error",
-        "-show_entries",
-        "format=duration",
-        "-of",
-        "default=noprint_wrappers=1:nokey=1",
-        file_path,
-    ]
+    process = await asyncio.create_subprocess_exec(
+        "ffprobe", "-v", "error", "-show_entries", "format=duration",
+        "-of", "default=noprint_wrappers=1:nokey=1", file_path,
+        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+    )
+    stdout, stderr = await process.communicate()
     try:
-        result = subprocess.run(
-            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-        )
-        if result.returncode == 0:
-            return float(result.stdout.strip())
-        else:
-            logger.error(f"ffprobe error for {file_path}: {result.stderr}")
-            return 0.0
-    except (FileNotFoundError, ValueError) as e:
-        logger.error(f"Unable to get duration for {file_path}: {e}")
+        return float(stdout.decode().strip())
+    except ValueError:
+        logger.error(f"ffprobe error for {file_path}: {stderr.decode()}")
         return 0.0
-
 
 def format_duration(seconds: int) -> str:
     """Formats a duration in seconds into HH:MM:SS or MM:SS."""

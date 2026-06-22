@@ -233,7 +233,7 @@ if not errorlevel 1 (
 goto install_deps
 
 :check_required_imports
-"%PYTHON%" -c "import cachetools, discord, dotenv, lyricsgenius, nacl, psutil, requests, spotipy, syncedlyrics, yt_dlp, rich; from playwright.async_api import async_playwright; from spotify_scraper import SpotifyClient" >nul 2>&1
+"%PYTHON%" -c "import cachetools, discord, dotenv, lyricsgenius, nacl, psutil, requests, spotipy, syncedlyrics, yt_dlp, rich, aiosqlite; from playwright.async_api import async_playwright; from spotify_scraper import SpotifyClient" >nul 2>&1
 exit /b %ERRORLEVEL%
 
 :install_deps

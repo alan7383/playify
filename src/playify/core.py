@@ -44,6 +44,7 @@ import shutil
 import subprocess
 import shlex
 import sqlite3
+import aiosqlite
 from pathlib import Path
 from dotenv import load_dotenv
 from .config import Config
@@ -423,61 +424,58 @@ def get_mode(guild_id: int) -> bool:
 async def save_all_states():
     """Save the complete state of all servers in the database."""
     logger.info("Attempting to save the state of all servers...")
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("DELETE FROM guild_settings")
+        await db.execute("DELETE FROM allowlist")
+        await db.execute("DELETE FROM playback_state")
 
-    cursor.execute("DELETE FROM guild_settings")
-    cursor.execute("DELETE FROM allowlist")
-    cursor.execute("DELETE FROM playback_state")
-
-    for guild_id, state in guild_states.items():
-        player = state.music_player
-        settings = (
-            guild_id,
-            state.locale == Locale.EN_X_KAWAII,
-            state.controller_channel_id,
-            state.controller_message_id,
-            state._24_7_mode,
-            player.autoplay_enabled,
-            player.volume,
-        )
-        cursor.execute(
-            "INSERT INTO guild_settings VALUES (?, ?, ?, ?, ?, ?, ?)", settings
-        )
-
-        for channel_id in state.allowed_channels:
-            cursor.execute(
-                "INSERT INTO allowlist VALUES (?, ?)", (guild_id, channel_id)
+        for guild_id, state in guild_states.items():
+            player = state.music_player
+            settings = (
+                guild_id,
+                state.locale == Locale.EN_X_KAWAII,
+                state.controller_channel_id,
+                state.controller_message_id,
+                state._24_7_mode,
+                player.autoplay_enabled,
+                player.volume,
+            )
+            await db.execute(
+                "INSERT INTO guild_settings VALUES (?, ?, ?, ?, ?, ?, ?)", settings
             )
 
-        if not player.voice_client or not player.voice_client.is_connected():
-            continue
+            for channel_id in state.allowed_channels:
+                await db.execute(
+                    "INSERT INTO allowlist VALUES (?, ?)", (guild_id, channel_id)
+                )
 
-        timestamp = 0
-        if player.playback_started_at:
-            timestamp = (
-                player.start_time
-                + (time.time() - player.playback_started_at) * player.playback_speed
+            if not player.voice_client or not player.voice_client.is_connected():
+                continue
+
+            timestamp = 0
+            if player.playback_started_at:
+                timestamp = (
+                    player.start_time
+                    + (time.time() - player.playback_started_at) * player.playback_speed
+                )
+            elif player.start_time > 0:
+                timestamp = player.start_time
+
+            state_data = (
+                guild_id,
+                player.voice_client.channel.id,
+                json.dumps(player.current_info) if player.current_info else None,
+                json.dumps(list(player.queue._queue)) if not player.queue.empty() else None,
+                json.dumps(player.history),
+                json.dumps(player.radio_playlist),
+                player.loop_current,
+                timestamp,
             )
-        elif player.start_time > 0:
-            timestamp = player.start_time
+            await db.execute(
+                "INSERT INTO playback_state VALUES (?, ?, ?, ?, ?, ?, ?, ?)", state_data
+            )
 
-        state_data = (
-            guild_id,
-            player.voice_client.channel.id,
-            json.dumps(player.current_info) if player.current_info else None,
-            json.dumps(list(player.queue._queue)) if not player.queue.empty() else None,
-            json.dumps(player.history),
-            json.dumps(player.radio_playlist),
-            player.loop_current,
-            timestamp,
-        )
-        cursor.execute(
-            "INSERT INTO playback_state VALUES (?, ?, ?, ?, ?, ?, ?, ?)", state_data
-        )
-
-    conn.commit()
-    conn.close()
+        await db.commit()
     logger.info("State save completed successfully.")
 
 
@@ -486,76 +484,74 @@ async def load_states_on_startup():
     from .services.playback import play_audio
 
     logger.info("Loading states from the database...")
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        
+        async with db.execute("SELECT * FROM guild_settings") as cursor:
+            async for row in cursor:
+                guild_id = row["guild_id"]
+                state = get_guild_state(guild_id)
+                player = state.music_player
 
-    cursor.execute("SELECT * FROM guild_settings")
-    for row in cursor.fetchall():
-        guild_id = row["guild_id"]
-        state = get_guild_state(guild_id)
-        player = state.music_player
+                state.locale = Locale.EN_X_KAWAII if row["kawaii_mode"] else Locale.EN_US
+                state.controller_channel_id = row["controller_channel_id"]
+                state.controller_message_id = row["controller_message_id"]
+                state._24_7_mode = row["is_24_7"]
+                player.autoplay_enabled = row["autoplay"]
+                player.volume = row["volume"]
 
-        state.locale = Locale.EN_X_KAWAII if row["kawaii_mode"] else Locale.EN_US
-        state.controller_channel_id = row["controller_channel_id"]
-        state.controller_message_id = row["controller_message_id"]
-        state._24_7_mode = row["is_24_7"]
-        player.autoplay_enabled = row["autoplay"]
-        player.volume = row["volume"]
+        async with db.execute("SELECT * FROM allowlist") as cursor:
+            async for row in cursor:
+                state = get_guild_state(row["guild_id"])
+                state.allowed_channels.add(row["channel_id"])
 
-    cursor.execute("SELECT * FROM allowlist")
-    for row in cursor.fetchall():
-        state = get_guild_state(row["guild_id"])
-        state.allowed_channels.add(row["channel_id"])
+        async with db.execute("SELECT * FROM playback_state") as cursor:
+            async for row in cursor:
+                guild_id = row["guild_id"]
+                guild = bot.get_guild(guild_id)
+                if not guild:
+                    continue
 
-    cursor.execute("SELECT * FROM playback_state")
-    for row in cursor.fetchall():
-        guild_id = row["guild_id"]
-        guild = bot.get_guild(guild_id)
-        if not guild:
-            continue
-
-        state = get_guild_state(guild_id)
-        player = state.music_player
-        try:
-            player.current_info = (
-                json.loads(row["current_song_json"])
-                if row["current_song_json"]
-                else None
-            )
-            player.history = (
-                json.loads(row["history_json"]) if row["history_json"] else []
-            )
-            player.radio_playlist = (
-                json.loads(row["radio_playlist_json"])
-                if row["radio_playlist_json"]
-                else []
-            )
-            player.loop_current = row["loop_current"]
-
-            queue_items = json.loads(row["queue_json"]) if row["queue_json"] else []
-            for item in queue_items:
-                await player.queue.put(item)
-
-            if row["voice_channel_id"] and player.current_info:
-                channel = guild.get_channel(row["voice_channel_id"])
-                if channel and isinstance(channel, discord.VoiceChannel):
-                    logger.info(
-                        f"[{guild_id}] Resuming: Reconnecting to voice channel '{channel.name}'..."
+                state = get_guild_state(guild_id)
+                player = state.music_player
+                try:
+                    player.current_info = (
+                        json.loads(row["current_song_json"])
+                        if row["current_song_json"]
+                        else None
                     )
-                    player.voice_client = await channel.connect()
-
-                    text_channel_id = state.controller_channel_id or (
-                        channel.last_message.channel.id if channel.last_message else 0
+                    player.history = (
+                        json.loads(row["history_json"]) if row["history_json"] else []
                     )
-                    player.text_channel = bot.get_channel(text_channel_id)
-
-                    timestamp = row["playback_timestamp"]
-                    bot.loop.create_task(
-                        play_audio(guild_id, seek_time=timestamp, is_a_loop=True)
+                    player.radio_playlist = (
+                        json.loads(row["radio_playlist_json"])
+                        if row["radio_playlist_json"]
+                        else []
                     )
-        except Exception as e:
-            logger.error(f"Failed to restore state for server {guild_id}: {e}")
+                    player.loop_current = row["loop_current"]
 
-    conn.close()
+                    queue_items = json.loads(row["queue_json"]) if row["queue_json"] else []
+                    for item in queue_items:
+                        await player.queue.put(item)
+
+                    if row["voice_channel_id"] and player.current_info:
+                        channel = guild.get_channel(row["voice_channel_id"])
+                        if channel and isinstance(channel, discord.VoiceChannel):
+                            logger.info(
+                                f"[{guild_id}] Resuming: Reconnecting to voice channel '{channel.name}'..."
+                            )
+                            player.voice_client = await channel.connect()
+
+                            text_channel_id = state.controller_channel_id or (
+                                channel.last_message.channel.id if channel.last_message else 0
+                            )
+                            player.text_channel = bot.get_channel(text_channel_id)
+
+                            timestamp = row["playback_timestamp"]
+                            bot.loop.create_task(
+                                play_audio(guild_id, seek_time=timestamp, is_a_loop=True)
+                            )
+                except Exception as e:
+                    logger.error(f"Failed to restore state for server {guild_id}: {e}")
+
     logger.info("State loading completed.")

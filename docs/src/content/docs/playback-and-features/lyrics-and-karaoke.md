@@ -3,37 +3,37 @@ title: Lyrics & Karaoke
 description: Fetching real-time lyrics and using the karaoke mode.
 ---
 
-Playify supports fetching high-quality lyrics directly from Genius and displaying them in Discord.
-
-## The Genius API Token
-
-To power the lyrics feature, Playify requires a valid **Genius API Token**.
-Without this token, the `/lyrics` and `/karaoke` commands will return an error, and the bot will fallback to standard music playback without text integration.
-
-### Setting up the Token
-1. Go to the [Genius API Clients Page](https://genius.com/api-clients/new) (you will need to create a free Genius account if you don't have one).
-2. Fill out the **New API Client** form:
-   - **App Name**: `Playify` (or any name you want)
-   - **App Website URL**: `https://github.com/alan7383/playify` (or any valid URL)
-   - **Redirect URI**: `http://localhost` (we only need the token, so this doesn't matter)
-3. Click **Save**, then click on **Generate Access Token** to get your **Client Access Token**.
-   
-   ![Generate Access Token](../../../assets/genius-token.png)
-4. Place this token in your `.env` file or provide it directly in the TUI Setup Wizard when you first launch the bot.
-   ```env
-   GENIUS_TOKEN=your_token_here
-   ```
+Playify tries to make things as simple as possible. By default, it uses **LRCLIB** to fetch lyrics and karaoke timings instantly, without needing any setup or API keys.
 
 ## Getting Lyrics (`/lyrics`)
 
-While a song is playing, you can run `/lyrics`.
-The bot will search Genius for the title and artist of the currently playing track and return the lyrics in a paginated embed message. You can click through the pages to read along.
+While a song is playing, just run `/lyrics`. 
+The bot will grab the lyrics and show them in a paginated embed. You can click through the pages to read along.
 
 ## Karaoke Mode (`/karaoke`)
 
-For a more interactive experience, use the `/karaoke` command. This feature is powered by the open-source [syncedlyrics](https://github.com/moehmeni/syncedlyrics) Python library. 
-
-When active, the bot attempts to sync the lyrics with the current timestamp of the song. The embed message will continuously edit itself to highlight the current verse being sung.
+For a more interactive vibe, use the `/karaoke` command. 
+The bot will sync the lyrics with the current timestamp of the song, highlighting the current verse being sung in real time.
 
 > [!WARNING]
-> Karaoke mode requires Discord to process many message edits in a short time. If you use it excessively on a very large server, you may hit Discord's rate limits.
+> Karaoke mode edits the discord message constantly. If you spam it on a massive server, you might hit Discord's rate limits. Just a heads up.
+
+---
+
+## Genius API Fallback (Optional)
+
+Sometimes LRCLIB doesn't have the lyrics for more obscure tracks. You can set up a Genius API token as a backup. If LRCLIB fails, Playify will automatically search Genius instead.
+
+### Setting up the Token
+
+1. Go to the [Genius API Clients Page](https://genius.com/api-clients/new) (create a free account if needed).
+2. Fill out the form:
+   - **App Name**: `Playify` (or whatever you prefer)
+   - **App Website URL**: `https://github.com/alan7383/playify`
+   - **Redirect URI**: `http://localhost`
+3. Click **Save**, then **Generate Access Token**.
+4. Paste this token into your `.env` file or give it to the TUI Setup Wizard.
+   
+   ```env
+   GENIUS_TOKEN=your_token_here
+   ```

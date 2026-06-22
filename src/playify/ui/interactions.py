@@ -5,6 +5,7 @@ from ..helpers.common import *
 from ..services.playback import play_audio, update_karaoke_task
 from ..services.voice import fetch_video_info_with_retry, fetch_meta, safe_stop
 from .controller import update_controller
+from ..services.lyrics import fetch_and_display_lyrics, fetch_lrclib
 
 class SeekModal(discord.ui.Modal):
     def __init__(self, view, guild_id):
@@ -365,21 +366,40 @@ class LyricsRetryModal(discord.ui.Modal):
         new_query = self.corrected_query.value
         logger.info(f"Retrying lyrics search with new query: '{new_query}'")
 
+        lyrics = None
+        song_url = None
+        song_title = new_query
+
         try:
-            loop = asyncio.get_running_loop()
-            if not genius:
-                await interaction.followup.send(
-                    get_messages("api.genius.not_configured", interaction.guild_id),
-                    silent=SILENT_MESSAGES,
-                    ephemeral=True,
+            # 1. Attempt LRCLIB
+            raw_lrclib = await fetch_lrclib(new_query, needs_synced=False)
+            if raw_lrclib:
+                lyrics = re.sub(r'\[\d{2}:\d{2}\.\d{2,3}\]', '', raw_lrclib)
+                lyrics = re.sub(r'\n\s*\n', '\n\n', lyrics).strip()
+                import urllib.parse
+                song_url = f"https://lrclib.net/search?q={urllib.parse.quote(new_query)}"
+
+            # 2. Attempt Genius fallback
+            elif genius:
+                loop = asyncio.get_running_loop()
+                song = await loop.run_in_executor(
+                    None, lambda: genius.search_song(new_query)
                 )
-                return
+                if song and song.lyrics:
+                    raw_lyrics = song.lyrics
+                    lines = raw_lyrics.split("\n")
+                    cleaned_lines = [
+                        line
+                        for line in lines
+                        if "contributor" not in line.lower()
+                        and "lyrics" not in line.lower()
+                        and "embed" not in line.lower()
+                    ]
+                    lyrics = "\n".join(cleaned_lines).strip()
+                    song_url = song.url
+                    song_title = song.title
 
-            song = await loop.run_in_executor(
-                None, lambda: genius.search_song(new_query)
-            )
-
-            if not song:
+            if not lyrics:
                 fail_message = get_messages(
                     "lyrics.error.not_found.description", self.guild_id, query=new_query
                 )
@@ -387,17 +407,6 @@ class LyricsRetryModal(discord.ui.Modal):
                     fail_message.split("\n")[0], silent=SILENT_MESSAGES, ephemeral=True
                 )
                 return
-
-            raw_lyrics = song.lyrics
-            lines = raw_lyrics.split("\n")
-            cleaned_lines = [
-                line
-                for line in lines
-                if "contributor" not in line.lower()
-                and "lyrics" not in line.lower()
-                and "embed" not in line.lower()
-            ]
-            lyrics = "\n".join(cleaned_lines).strip()
 
             pages = []
             current_page_content = ""
@@ -411,9 +420,9 @@ class LyricsRetryModal(discord.ui.Modal):
 
             base_embed = Embed(
                 title=get_messages(
-                    "lyrics.embed.title", self.guild_id, title=song.title
+                    "lyrics.embed.title", self.guild_id, title=song_title
                 ),
-                url=song.url,
+                url=song_url,
                 color=discord.Color.green(),
             )
 
@@ -475,12 +484,13 @@ class LyricsRetryView(discord.ui.View):
 
 class KaraokeRetryModal(discord.ui.Modal):
     def __init__(self, original_interaction: discord.Interaction, suggested_query: str):
+        guild_id = original_interaction.guild_id
         super().__init__(
-            title=get_messages("karaoke.refine_modal.title", self.guild_id)
+            title=get_messages("karaoke.refine_modal.title", guild_id)
         )
         self.original_interaction = original_interaction
         self.suggested_query = suggested_query
-        self.guild_id = original_interaction.guild_id
+        self.guild_id = guild_id
         self.music_player = get_player(self.guild_id)
         self.is_kawaii = get_mode(self.guild_id)
 
@@ -492,80 +502,79 @@ class KaraokeRetryModal(discord.ui.Modal):
         )
         self.add_item(self.corrected_query)
 
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(thinking=True, ephemeral=True)
+        new_query = self.corrected_query.value
+        logger.info(f"Retrying synced lyrics search with new query: '{new_query}'")
+    
+        loop = asyncio.get_running_loop()
+        lrc = None
+        
+        # 1. Attempt LRCLIB
+        lrc = await fetch_lrclib(new_query, needs_synced=True)
+        
+        # 2. Attempt SyncedLyrics
+        if not lrc:
+            try:
+                import syncedlyrics
+                lrc = await asyncio.wait_for(
+                    loop.run_in_executor(None, syncedlyrics.search, new_query), timeout=10.0
+                )
+            except (asyncio.TimeoutError, Exception) as e:
+                logger.error(f"Error during karaoke retry search: {e}")
+    
+        # --- START OF FIX ---
+        lyrics_lines = []
+        if lrc:
+            lyrics_lines = [
+                {
+                    "time": int(m.group(1)) * 60000
+                    + int(m.group(2)) * 1000
+                    + int(m.group(3)),
+                    "text": m.group(4).strip(),
+                }
+                for line in lrc.splitlines()
+                if (m := re.match(r"\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)", line))
+            ]
+    
+        if not lyrics_lines:
+            fail_message = get_messages(
+                "karaoke.not_found_description", self.guild_id, query=new_query
+            )
+            await interaction.followup.send(
+                fail_message, silent=SILENT_MESSAGES, ephemeral=True
+            )
+            return
+        # --- END OF FIX ---
 
-# THIS IS THE METHOD THAT WAS MISSING
-async def on_submit(self, interaction: discord.Interaction):
-    await interaction.response.defer(thinking=True, ephemeral=True)
-    new_query = self.corrected_query.value
-    logger.info(f"Retrying synced lyrics search with new query: '{new_query}'")
+        # Success! If we get here, lyrics_lines is valid. Start the karaoke.
+        self.music_player.synced_lyrics = lyrics_lines
 
-    loop = asyncio.get_running_loop()
-    lrc = None
-    try:
-        lrc = await asyncio.wait_for(
-            loop.run_in_executor(None, syncedlyrics.search, new_query), timeout=10.0
+        clean_title, _ = get_cleaned_song_info(
+            self.music_player.current_info, self.guild_id
         )
-    except (asyncio.TimeoutError, Exception) as e:
-        logger.error(f"Error during karaoke retry search: {e}")
-
-    # --- START OF FIX ---
-    # We check for failure (no LRC found OR LRC found but is empty/invalid) in a single block.
-    lyrics_lines = []
-    if lrc:
-        lyrics_lines = [
-            {
-                "time": int(m.group(1)) * 60000
-                + int(m.group(2)) * 1000
-                + int(m.group(3)),
-                "text": m.group(4).strip(),
-            }
-            for line in lrc.splitlines()
-            if (m := re.match(r"\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)", line))
-        ]
-
-    if not lyrics_lines:
-        # 1. DEFINE the failure message before using it.
-        fail_message = get_messages(
-            "karaoke.not_found_description", self.guild_id, query=new_query
+        embed = Embed(
+            title=get_messages("karaoke.embed.title", self.guild_id, title=clean_title),
+            description=get_messages("karaoke.embed.description", self.guild_id),
+            color=0xC7CEEA if self.is_kawaii else discord.Color.blue(),
         )
-        # 2. SEND the correctly defined failure message.
+
+        lyrics_message = await self.original_interaction.followup.send(
+            silent=SILENT_MESSAGES, embed=embed, wait=True
+        )
+        self.music_player.lyrics_message = lyrics_message
+        self.music_player.lyrics_task = asyncio.create_task(
+            update_karaoke_task(self.guild_id)
+        )
+
+        success_message = get_messages("karaoke.retry.success", self.guild_id)
         await interaction.followup.send(
-            fail_message, silent=SILENT_MESSAGES, ephemeral=True
+            success_message, silent=SILENT_MESSAGES, ephemeral=True
         )
-        return
-    # --- END OF FIX ---
-
-    # Success! If we get here, lyrics_lines is valid. Start the karaoke.
-    self.music_player.synced_lyrics = lyrics_lines
-
-    clean_title, _ = get_cleaned_song_info(
-        self.music_player.current_info, self.guild_id
-    )
-    embed = Embed(
-        title=get_messages("karaoke.embed.title", self.guild_id, title=clean_title),
-        description=get_messages("karaoke.embed.description", self.guild_id),
-        color=0xC7CEEA if self.is_kawaii else discord.Color.blue(),
-    )
-
-    # We use the original interaction's followup to send the main message
-    lyrics_message = await self.original_interaction.followup.send(
-        silent=SILENT_MESSAGES, embed=embed, wait=True
-    )
-    self.music_player.lyrics_message = lyrics_message
-    self.music_player.lyrics_task = asyncio.create_task(
-        update_karaoke_task(self.guild_id)
-    )
-
-    # Notify the user who clicked the button that it worked
-    success_message = get_messages("karaoke.retry.success", self.guild_id)
-    await interaction.followup.send(
-        success_message, silent=SILENT_MESSAGES, ephemeral=True
-    )
 
 
 class RefineLyricsModal(discord.ui.Modal):
     def __init__(self, message_to_edit: discord.Message):
-        # Use the guild_id from the message directly to set the title
         super().__init__(
             title=get_messages("lyrics.refine_modal.title", message_to_edit.guild.id)
         )
@@ -586,21 +595,40 @@ class RefineLyricsModal(discord.ui.Modal):
         new_query = self.corrected_query.value
         logger.info(f"Refining lyrics search with new query: '{new_query}'")
 
-        if not genius:
-            await interaction.followup.send(
-                get_messages("api.genius.not_configured", interaction.guild_id),
-                silent=SILENT_MESSAGES,
-                ephemeral=True,
-            )
-            return
+        lyrics = None
+        song_url = None
+        song_title = new_query
 
         try:
-            loop = asyncio.get_running_loop()
-            song = await loop.run_in_executor(
-                None, lambda: genius.search_song(new_query)
-            )
+            # 1. Attempt LRCLIB
+            raw_lrclib = await fetch_lrclib(new_query, needs_synced=False)
+            if raw_lrclib:
+                lyrics = re.sub(r'\[\d{2}:\d{2}\.\d{2,3}\]', '', raw_lrclib)
+                lyrics = re.sub(r'\n\s*\n', '\n\n', lyrics).strip()
+                import urllib.parse
+                song_url = f"https://lrclib.net/search?q={urllib.parse.quote(new_query)}"
 
-            if not song:
+            # 2. Attempt Genius fallback
+            elif genius:
+                loop = asyncio.get_running_loop()
+                song = await loop.run_in_executor(
+                    None, lambda: genius.search_song(new_query)
+                )
+                if song and song.lyrics:
+                    raw_lyrics = song.lyrics
+                    lines = raw_lyrics.split("\n")
+                    cleaned_lines = [
+                        line
+                        for line in lines
+                        if "contributor" not in line.lower()
+                        and "lyrics" not in line.lower()
+                        and "embed" not in line.lower()
+                    ]
+                    lyrics = "\n".join(cleaned_lines).strip()
+                    song_url = song.url
+                    song_title = song.title
+
+            if not lyrics:
                 await interaction.followup.send(
                     get_messages(
                         "lyrics.error.refine_failed",
@@ -611,17 +639,6 @@ class RefineLyricsModal(discord.ui.Modal):
                     ephemeral=True,
                 )
                 return
-
-            raw_lyrics = song.lyrics
-            lines = raw_lyrics.split("\n")
-            cleaned_lines = [
-                line
-                for line in lines
-                if "contributor" not in line.lower()
-                and "lyrics" not in line.lower()
-                and "embed" not in line.lower()
-            ]
-            lyrics = "\n".join(cleaned_lines).strip()
 
             pages = []
             current_page_content = ""
@@ -635,9 +652,9 @@ class RefineLyricsModal(discord.ui.Modal):
 
             new_embed = Embed(
                 title=get_messages(
-                    "lyrics.embed.title", self.guild_id, title=song.title
+                    "lyrics.embed.title", self.guild_id, title=song_title
                 ),
-                url=song.url,
+                url=song_url,
                 color=0xB5EAD7 if self.is_kawaii else discord.Color.green(),
             )
 
@@ -679,7 +696,6 @@ class KaraokeRetryView(discord.ui.View):
         self.suggested_query = suggested_query
         self.guild_id = guild_id
 
-        # Set button labels from messages
         self.retry_button.label = get_messages("karaoke.retry_button", self.guild_id)
         self.genius_fallback_button.label = get_messages(
             "karaoke.genius_fallback_button", self.guild_id
@@ -697,17 +713,14 @@ class KaraokeRetryView(discord.ui.View):
     async def genius_fallback_button(
         self, interaction: discord.Interaction, button: Button
     ):
-        # Disable buttons to show action is taken
         for child in self.children:
             child.disabled = True
         await self.original_interaction.edit_original_response(view=self)
 
-        # Acknowledge the button click before starting the search
         await interaction.response.defer()
 
-        # Fetch standard lyrics
         fallback_msg = get_messages("lyrics.fallback_warning", self.guild_id)
-        await fetch_and_display_genius_lyrics(
+        await fetch_and_display_lyrics(
             self.original_interaction, fallback_message=fallback_msg
         )
 
