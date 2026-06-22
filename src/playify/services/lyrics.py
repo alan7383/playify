@@ -67,7 +67,7 @@ async def fetch_and_display_lyrics(
             lyrics = re.sub(r"\[\d{2}:\d{2}\.\d{2,3}\]", "", raw_lrclib)
             lyrics = re.sub(r"\n\s*\n", "\n\n", lyrics).strip()
             song_url = (
-                f"https://lrclib.net/search?q={urllib.parse.quote(precise_query)}"
+                f"https://lrclib.net/search/{urllib.parse.quote(precise_query)}"
             )
 
         elif genius:

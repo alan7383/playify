@@ -377,7 +377,7 @@ class LyricsRetryModal(discord.ui.Modal):
                 lyrics = re.sub(r'\[\d{2}:\d{2}\.\d{2,3}\]', '', raw_lrclib)
                 lyrics = re.sub(r'\n\s*\n', '\n\n', lyrics).strip()
                 import urllib.parse
-                song_url = f"https://lrclib.net/search?q={urllib.parse.quote(new_query)}"
+                song_url = f"https://lrclib.net/search/{urllib.parse.quote(new_query)}"
 
             # 2. Attempt Genius fallback
             elif genius:
@@ -426,7 +426,7 @@ class LyricsRetryModal(discord.ui.Modal):
                 color=discord.Color.green(),
             )
 
-            view = LyricsView(pages=pages, original_embed=base_embed)
+            view = LyricsView(pages=pages, original_embed=base_embed, guild_id=self.guild_id)
             initial_embed = view.update_embed()
 
             view.children[0].disabled = True
@@ -606,7 +606,7 @@ class RefineLyricsModal(discord.ui.Modal):
                 lyrics = re.sub(r'\[\d{2}:\d{2}\.\d{2,3}\]', '', raw_lrclib)
                 lyrics = re.sub(r'\n\s*\n', '\n\n', lyrics).strip()
                 import urllib.parse
-                song_url = f"https://lrclib.net/search?q={urllib.parse.quote(new_query)}"
+                song_url = f"https://lrclib.net/search/{urllib.parse.quote(new_query)}"
 
             # 2. Attempt Genius fallback
             elif genius:
