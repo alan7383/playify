@@ -632,133 +632,225 @@ async def process_tidal_url(url, interaction):
 
 async def process_amazon_music_url(url, interaction):
     guild_id = interaction.guild_id
-    logger.info(f"Launching unified processing for Amazon Music URL: {url}")
+    logger.info(f"[Amazon Music] Starting lightweight HTTP processing for: {url}")
 
-    is_album = "/albums/" in url
-    is_playlist = "/playlists/" in url or "/user-playlists/" in url
-    is_track = "/tracks/" in url
+    # --- Helper: recursively extract track tuples from the giant JSON response ---
+    def _extract_tracks_recursive(obj, results):
+        """
+        Walks the JSON tree and collects (title, artist) tuples from nodes
+        that contain either (primaryText + secondaryText1) or (trackName + artistName).
+        It also checks for embedded JSON-LD strings for hidden SEO data.
+        """
+        if isinstance(obj, dict):
+            primary = obj.get("primaryText")
+            secondary = obj.get("secondaryText1")
+            track_name = obj.get("trackName")
+            artist_name = obj.get("artistName")
 
-    browser = None  # Initialize the browser to None
+            if primary and secondary:
+                if isinstance(primary, dict): primary = primary.get("text", "")
+                if isinstance(secondary, dict): secondary = secondary.get("text", "")
+                if primary and secondary:
+                    results.append((str(primary).strip(), str(secondary).strip()))
+            elif track_name and artist_name:
+                results.append((str(track_name).strip(), str(artist_name).strip()))
+
+            for value in obj.values():
+                if isinstance(value, str) and value.startswith('{"@context":"https://schema.org"'):
+                    try:
+                        import json
+                        data = json.loads(value)
+                        if data.get("@type") == "MusicAlbum" and "track" in data:
+                            album_artist = data.get("byArtist", {}).get("name", "Unknown Artist")
+                            for track in data.get("track", []):
+                                t_name = track.get("name")
+                                if t_name:
+                                    results.append((str(t_name).strip(), str(album_artist).strip()))
+                        elif data.get("@type") == "MusicRecording":
+                            t_name = data.get("name")
+                            t_artist = data.get("byArtist", {}).get("name", "Unknown Artist")
+                            if t_name:
+                                results.append((str(t_name).strip(), str(t_artist).strip()))
+                    except Exception:
+                        pass
+                _extract_tracks_recursive(value, results)
+        elif isinstance(obj, list):
+            for item in obj:
+                _extract_tracks_recursive(item, results)
+
+    def _clean_track_text(text):
+        """Removes noise tags like [Explicit] from track/artist strings."""
+        return re.sub(r"\s*\[Explicit\]\s*", "", text, flags=re.IGNORECASE).strip()
+
+    def _deduplicate_ordered(seq):
+        """Deduplicates a list of tuples while preserving insertion order."""
+        seen = set()
+        result = []
+        for item in seq:
+            if item not in seen:
+                seen.add(item)
+                result.append(item)
+        return result
+
     try:
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            context = await browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
-            )
-            page = await context.new_page()
+        # === STEP 1: Extract the domain from the URL ===
+        parsed = urlparse(url)
+        domain = parsed.netloc  # e.g. music.amazon.fr
+        if not domain:
+            raise ValueError(f"Could not extract domain from URL: {url}")
+        logger.info(f"[Amazon Music] Domain extracted: {domain}")
 
-            await page.goto(url, wait_until="domcontentloaded", timeout=60000)
-            logger.info("Page loaded. Cookie management.")
+        # Build the deeplink path from the original URL
+        deeplink_path = parsed.path
+        if parsed.query:
+            deeplink_path += f"?{parsed.query}"
 
-            try:
-                await page.click(
-                    'music-button:has-text("Accepter les cookies")', timeout=7000
-                )
-                logger.info("Cookie banner accepted.")
-            except Exception:
-                logger.info("No cookie banner found.")
+        user_agent = (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/125.0.0.0 Safari/537.36"
+        )
 
-            tracks = []
+        # Use a cookie jar to persist session-id across requests
+        import aiohttp
+        jar = aiohttp.CookieJar()
+        async with aiohttp.ClientSession(cookie_jar=jar) as session:
+            # === STEP 2: GET config.json for deviceId and cookies ===
+            config_url = f"https://{domain}/config.json"
+            logger.info(f"[Amazon Music] Fetching config from: {config_url}")
 
-            if is_album or is_track:
-                page_type = "Album" if is_album else "Track"
-                logger.info(
-                    f"Page of type '{page_type}' detected. Using JSON extraction method."
-                )
-
-                selector = 'script[type="application/ld+json"]'
-                await page.wait_for_selector(selector, state="attached", timeout=20000)
-
-                json_ld_scripts = await page.locator(selector).all_inner_texts()
-
-                found_data = False
-                for script_content in json_ld_scripts:
-                    data = json.loads(script_content)
-                    if data.get("@type") == "MusicAlbum" or (
-                        is_album and "itemListElement" in data
-                    ):
-                        album_artist = data.get("byArtist", {}).get(
-                            "name", "Unknown Artist"
-                        )
-                        for item in data.get("itemListElement", []):
-                            track_name = item.get("name")
-                            track_artist = item.get("byArtist", {}).get(
-                                "name", album_artist
-                            )
-                            if track_name and track_artist:
-                                tracks.append((track_name, track_artist))
-                        found_data = True
-                        break
-                    elif data.get("@type") == "MusicRecording":
-                        track_name = data.get("name")
-                        track_artist = data.get("byArtist", {}).get(
-                            "name", "Unknown Artist"
-                        )
-                        if track_name and track_artist:
-                            tracks.append((track_name, track_artist))
-                        found_data = True
-                        break
-
-                if not found_data:
+            async with session.get(
+                config_url,
+                headers={
+                    "User-Agent": user_agent,
+                    "Accept": "application/json, text/plain, */*",
+                    "Referer": f"https://{domain}/",
+                },
+                timeout=aiohttp.ClientTimeout(total=15),
+            ) as config_resp:
+                if config_resp.status != 200:
                     raise ValueError(
-                        f"No data of type 'MusicAlbum' or 'MusicRecording' found in JSON-LD tags."
+                        f"config.json returned HTTP {config_resp.status}"
                     )
+                config_data = await config_resp.json(content_type=None)
 
-            elif is_playlist:
-                logger.info(
-                    "'Playlist' type page detected. Using fast pre-virtualization extraction."
-                )
-                try:
-                    await page.wait_for_selector(
-                        "music-image-row[primary-text]", timeout=20000
+            device_id = config_data.get("deviceId", "")
+            session_id = config_data.get("sessionId", "")
+            csrf = config_data.get("csrf", {})
+            csrf_token = csrf.get("token", "")
+            csrf_ts = csrf.get("ts", csrf.get("timestamp", ""))
+            csrf_rnd = csrf.get("rnd", csrf.get("rndNonce", ""))
+            version = config_data.get("version", "1.0")
+            
+            # The API endpoint is determined by the region, typically eu.web.skill.music.a2z.com for FR
+            show_home_url = "https://eu.web.skill.music.a2z.com/api/showHome"
+
+            # === STEP 3: POST to showHome with properly formatted interface objects ===
+            import time
+            import uuid
+            
+            deeplink_obj = {
+                "interface": "DeeplinkInterface.v1_0.DeeplinkClientInformation",
+                "deeplink": deeplink_path
+            }
+
+            inner_headers = {
+                "x-amzn-authentication": json.dumps({
+                    "interface": "ClientAuthenticationInterface.v1_0.ClientTokenElement",
+                    "accessToken": ""
+                }),
+                "x-amzn-device-model": "WEBPLAYER",
+                "x-amzn-device-width": "1920",
+                "x-amzn-device-family": "WebPlayer",
+                "x-amzn-device-id": device_id,
+                "x-amzn-user-agent": user_agent,
+                "x-amzn-session-id": session_id,
+                "x-amzn-device-height": "1080",
+                "x-amzn-request-id": str(uuid.uuid4()),
+                "x-amzn-device-language": "fr_FR",
+                "x-amzn-currency-of-preference": "EUR",
+                "x-amzn-os-version": "1.0",
+                "x-amzn-application-version": version,
+                "x-amzn-device-time-zone": "Europe/Paris",
+                "x-amzn-timestamp": str(int(time.time() * 1000)),
+                "x-amzn-csrf": json.dumps({
+                    "interface": "CSRFInterface.v1_0.CSRFHeaderElement",
+                    "token": csrf_token,
+                    "timestamp": csrf_ts,
+                    "rndNonce": csrf_rnd,
+                }),
+                "x-amzn-music-domain": domain,
+                "x-amzn-referer": "",
+                "x-amzn-affiliate-tags": "",
+                "x-amzn-ref-marker": "",
+                "x-amzn-page-url": url,
+                "x-amzn-weblab-id-overrides": "",
+                "x-amzn-video-player-token": "",
+                "x-amzn-feature-flags": "",
+                "x-amzn-has-profile-id": "",
+                "x-amzn-age-band": "",
+            }
+
+            payload = json.dumps({
+                "deeplink": json.dumps(deeplink_obj),
+                "headers": json.dumps(inner_headers),
+            })
+
+            post_headers = {
+                "User-Agent": user_agent,
+                "Content-Type": "text/plain;charset=UTF-8",
+                "Accept": "*/*",
+                "Origin": f"https://{domain}",
+                "Referer": f"https://{domain}/",
+            }
+
+            logger.info(f"[Amazon Music] POSTing to showHome: {show_home_url}")
+            async with session.post(
+                show_home_url,
+                data=payload,
+                headers=post_headers,
+                timeout=aiohttp.ClientTimeout(total=30),
+            ) as api_resp:
+                if api_resp.status != 200:
+                    resp_text = await api_resp.text()
+                    raise ValueError(
+                        f"showHome API returned HTTP {api_resp.status}: "
+                        f"{resp_text[:500]}"
                     )
-                    logger.info(
-                        "Tracklist detected. Waiting 3.5 seconds for initial load."
-                    )
-                    await asyncio.sleep(3.5)
-                except Exception as e:
-                    raise ValueError(f"Unable to detect initial tracklist: {e}")
+                api_data = await api_resp.json(content_type=None)
 
-                js_script_playlist = """
-                () => {
-                    const tracksData = [];
-                    const rows = document.querySelectorAll('music-image-row[primary-text]');
-                    rows.forEach(row => {
-                        const title = row.getAttribute('primary-text');
-                        const artist = row.getAttribute('secondary-text-1');
-                        const indexEl = row.querySelector('span.index');
-                        const index = indexEl ? parseInt(indexEl.innerText.trim(), 10) : null;
-                        if (title && artist && index !== null && !isNaN(index)) {
-                            tracksData.push({ index: index, title: title.trim(), artist: artist.trim() });
-                        }
-                    });
-                    tracksData.sort((a, b) => a.index - b.index);
-                    return tracksData.map(t => ({ title: t.title, artist: t.artist }));
-                }
-                """
-                tracks_data = await page.evaluate(js_script_playlist)
-                tracks = [(track["title"], track["artist"]) for track in tracks_data]
+        # === STEP 4: Recursively extract tracks from the response ===
+        raw_tracks = []
+        _extract_tracks_recursive(api_data, raw_tracks)
 
-            else:
-                raise ValueError(
-                    "Amazon Music URL not recognized (neither album, nor playlist, nor track)."
-                )
-
-            if not tracks:
-                raise ValueError("No tracks could be extracted from the page.")
-
-            logger.info(
-                f"Processing complete. {len(tracks)} track(s) found. First track: {tracks[0]}"
+        if not raw_tracks:
+            raise ValueError(
+                "No tracks found. The URL may be invalid or completely region-locked."
             )
-            return tracks
+
+        # Clean up track strings and deduplicate
+        cleaned_tracks = [
+            (_clean_track_text(title), _clean_track_text(artist))
+            for title, artist in raw_tracks
+            if title and artist
+        ]
+        tracks = _deduplicate_ordered(cleaned_tracks)
+
+        if not tracks:
+            raise ValueError(
+                "All extracted tracks were empty after cleaning."
+            )
+
+        logger.info(
+            f"[Amazon Music] Done! {len(tracks)} unique track(s) extracted. "
+            f"First: {tracks[0]}"
+        )
+        return tracks
 
     except Exception as e:
         logger.error(
-            f"Final error in process_amazon_music_url for {url}: {e}", exc_info=True
+            f"[Amazon Music] Error processing {url}: {e}", exc_info=True
         )
-        if "page" in locals() and page and not page.is_closed():
-            await page.screenshot(path="amazon_music_scrape_failed.png")
-            logger.info("Screenshot of the error saved.")
 
         embed = Embed(
             description=get_messages("amazon_music_error", guild_id),
@@ -774,9 +866,5 @@ async def process_amazon_music_url(url, interaction):
                     silent=SILENT_MESSAGES, embed=embed, ephemeral=True
                 )
         except Exception as send_error:
-            logger.error(f"Unable to send error message: {send_error}")
+            logger.error(f"[Amazon Music] Unable to send error message: {send_error}")
         return None
-    finally:
-        if browser:
-            await browser.close()
-            logger.info("Playwright (Amazon Music) browser closed successfully.")
