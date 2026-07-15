@@ -29,7 +29,7 @@ async def process_spotify_url(url, interaction):
                     lambda: sp.playlist_items(
                         clean_url,
                         fields="items.track.name,items.track.artists.name,next",
-                        limit=100,
+                        limit=10000,
                     ),
                 )
                 while results:
