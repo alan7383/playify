@@ -31,7 +31,7 @@ async def fetch_video_info_with_retry(query: str, ydl_opts_override=None):
         result = await run_ydl_with_low_priority(ydl_opts, query)
         url_cache[cache_key] = result
         return result
-    except yt_dlp.utils.DownloadError as e:
+    except YtdlDownloadError as e:
         error_str = str(e).lower()
         # Check for age restriction errors OR bot detection
         # AJOUT DE "bot" POUR FORCER L'UTILISATION DES COOKIES
@@ -103,7 +103,7 @@ async def run_ydl_with_low_priority(
 
     if result_dict.get("status") == "error":
         error_message = result_dict.get("message", "Unknown error in subprocess")
-        raise yt_dlp.utils.DownloadError(error_message)
+        raise YtdlDownloadError(error_message)
 
     return result_dict.get("data")
 

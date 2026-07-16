@@ -30,6 +30,10 @@ def get_mix_playlist_url(video_url):
 def get_soundcloud_track_id(url):
     if "soundcloud.com" in url:
         try:
+            # Lazy: only SoundCloud autoplay pays the yt-dlp import in the
+            # main process; everything else extracts in the pool workers.
+            import yt_dlp
+
             ydl_opts = {
                 "quiet": True,
                 "no_warnings": True,

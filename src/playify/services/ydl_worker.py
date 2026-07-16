@@ -19,7 +19,10 @@ import os
 import platform
 
 import psutil
-import yt_dlp
+
+# NOTE: yt_dlp itself is imported inside ydl_worker(), not here. The parent
+# process imports this module too (to hand the function to the pool), and a
+# top-level import would drag ~15 MB of yt-dlp back into the main process.
 
 # Keys that are never read anywhere in Playify and dominate the dict size.
 _HEAVY_KEYS = (
@@ -59,6 +62,8 @@ def ydl_worker(ydl_opts, query, cookies_file=None):
     Exceptions are converted to plain strings so nothing unpicklable
     crosses the process boundary.
     """
+    import yt_dlp  # heavy: only ever loaded in pool children
+
     process = psutil.Process()
     if platform.system() == "Windows":
         process.nice(psutil.IDLE_PRIORITY_CLASS)

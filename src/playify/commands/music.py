@@ -1597,7 +1597,14 @@ async def status(interaction: discord.Interaction):
         f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     )
     discord_py_version = discord.__version__
-    yt_dlp_version = yt_dlp.version.__version__
+    # Read from package metadata: importing yt_dlp costs ~15 MB of RSS in
+    # the main process for a version string.
+    try:
+        import importlib.metadata
+
+        yt_dlp_version = importlib.metadata.version("yt-dlp")
+    except Exception:
+        yt_dlp_version = "unknown"
     os_info = f"{platform.system()} {platform.release()}"
 
     guild_id = interaction.guild_id

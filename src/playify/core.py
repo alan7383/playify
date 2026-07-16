@@ -13,7 +13,6 @@ from discord.ui import View, Button
 from discord import ButtonStyle
 from discord.app_commands import Choice
 import asyncio
-import yt_dlp
 import re
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
@@ -150,6 +149,15 @@ except (NotImplementedError, PermissionError, OSError, TypeError, ValueError) as
 
 SILENT_MESSAGES = True
 IS_PUBLIC_VERSION = False
+
+
+class YtdlDownloadError(Exception):
+    """Extraction failure reported by a yt-dlp pool worker.
+
+    yt-dlp itself is only imported inside the worker processes (it costs
+    ~15 MB of RSS); the main process uses this exception instead of
+    yt_dlp.utils.DownloadError so it never has to import the library.
+    """
 
 # --- Logging ---
 
