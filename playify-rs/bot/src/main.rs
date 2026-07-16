@@ -11,7 +11,9 @@
 
 mod commands;
 mod events;
+mod i18n;
 mod lyrics;
+mod persist;
 mod platforms;
 mod player;
 mod selftest;
@@ -158,6 +160,7 @@ async fn main() {
         })
         .build();
 
+    let players_for_shutdown = players_for_events.clone();
     let mut client = serenity::ClientBuilder::new(&token, intents)
         .framework(framework)
         .event_handler(events::VoiceEvents {
@@ -167,7 +170,16 @@ async fn main() {
         .await
         .expect("client build failed");
 
-    if let Err(e) = client.start().await {
-        eprintln!("client error: {e}");
+    // Save playback state on Ctrl-C so the next boot resumes seamlessly.
+    tokio::select! {
+        result = client.start() => {
+            if let Err(e) = result {
+                eprintln!("client error: {e}");
+            }
+        }
+        _ = tokio::signal::ctrl_c() => {
+            info!("shutting down: saving playback state");
+            persist::save(&players_for_shutdown).await;
+        }
     }
 }

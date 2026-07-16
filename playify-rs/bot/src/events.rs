@@ -38,6 +38,102 @@ fn humans_in_channel(
 
 #[serenity::async_trait]
 impl EventHandler for VoiceEvents {
+    async fn cache_ready(&self, ctx: serenity::Context, _guilds: Vec<serenity::GuildId>) {
+        // Wire background access (controller posts, persistence) and
+        // restore the pre-restart playback state.
+        if let Some(manager) = songbird::get(&ctx).await {
+            let _ = self.players.manager.set(manager);
+        }
+        let _ = self.players.discord_http.set(ctx.http.clone());
+
+        static RESTORED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+        if !RESTORED.swap(true, std::sync::atomic::Ordering::SeqCst) {
+            crate::persist::restore(&self.players).await;
+            let players = self.players.clone();
+            tokio::spawn(async move {
+                loop {
+                    tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+                    crate::persist::save(&players).await;
+                }
+            });
+        }
+    }
+
+    async fn interaction_create(&self, ctx: serenity::Context, interaction: serenity::Interaction) {
+        let Some(component) = interaction.as_message_component() else { return };
+        let custom_id = component.data.custom_id.as_str();
+        if !custom_id.starts_with("v3ctl_") {
+            return;
+        }
+        let Some(guild_id) = component.guild_id else { return };
+        let _ = component
+            .create_response(&ctx.http, serenity::CreateInteractionResponse::Acknowledge)
+            .await;
+
+        let Some(manager) = songbird::get(&ctx).await else { return };
+        let players = self.players.clone();
+        let player_ref = players.get(guild_id.get()).await;
+
+        match custom_id {
+            "v3ctl_pause" => {
+                let mut player = player_ref.lock().await;
+                if let Some(handle) = &player.handle {
+                    if player.paused {
+                        let _ = handle.play();
+                        player.paused = false;
+                        player.started_at = Some(std::time::Instant::now());
+                    } else {
+                        let _ = handle.pause();
+                        let position = player.position();
+                        player.paused = true;
+                        player.start_offset = position;
+                        player.started_at = None;
+                    }
+                }
+            }
+            "v3ctl_skip" => {
+                let handle = {
+                    let mut player = player_ref.lock().await;
+                    player.loop_current = false;
+                    player.handle.take()
+                };
+                if let Some(handle) = handle {
+                    let _ = handle.stop();
+                }
+            }
+            "v3ctl_stop" => {
+                let controller = {
+                    let mut player = player_ref.lock().await;
+                    player.queue.clear();
+                    player.epoch += 1;
+                    if let Some(handle) = player.handle.take() {
+                        let _ = handle.stop();
+                    }
+                    player.controller.take()
+                };
+                if let Some((channel, message)) = controller {
+                    let _ = serenity::ChannelId::new(channel)
+                        .delete_message(&ctx.http, serenity::MessageId::new(message))
+                        .await;
+                }
+                players.remove(guild_id.get()).await;
+                let _ = manager.remove(guild_id).await;
+            }
+            "v3ctl_loop" => {
+                let mut player = player_ref.lock().await;
+                player.loop_current = !player.loop_current;
+            }
+            "v3ctl_shuffle" => {
+                use rand::seq::SliceRandom;
+                let mut player = player_ref.lock().await;
+                let mut tracks: Vec<_> = player.queue.drain(..).collect();
+                tracks.shuffle(&mut rand::thread_rng());
+                player.queue.extend(tracks);
+            }
+            _ => {}
+        }
+    }
+
     async fn voice_state_update(
         &self,
         ctx: serenity::Context,

@@ -11,12 +11,14 @@ use playify_audio::{
     dsp::{effective_speed, FilterChain},
     pipeline,
 };
+use poise::serenity_prelude as serenity;
 use songbird::{
     events::{Event, EventContext, EventHandler, TrackEvent},
-    input::{HttpRequest, Input},
+    input::{HlsRequest, HttpRequest, Input},
     tracks::Track,
     Songbird,
 };
+use std::sync::OnceLock;
 use tracing::{info, warn};
 
 use crate::ytdlp::{self, Resolved};
@@ -43,6 +45,10 @@ pub struct GuildPlayer {
     /// Bumped on deliberate replacements (seek/filter restart) so the
     /// replaced track's End event does not advance the queue.
     pub epoch: u64,
+    /// Channel of the last music command; the controller panel lives there.
+    pub text_channel: Option<u64>,
+    /// (channel_id, message_id) of the posted controller panel.
+    pub controller: Option<(u64, u64)>,
 }
 
 impl GuildPlayer {
@@ -76,6 +82,9 @@ pub struct Players {
     inner: Arc<tokio::sync::Mutex<HashMap<u64, PlayerRef>>>,
     pub http: reqwest::Client,
     pub settings: crate::settings::Settings,
+    /// Set once at startup; lets background tasks reach Discord and voice.
+    pub manager: Arc<OnceLock<Arc<Songbird>>>,
+    pub discord_http: Arc<OnceLock<Arc<serenity::Http>>>,
 }
 
 impl Players {
@@ -84,7 +93,18 @@ impl Players {
             inner: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
             http,
             settings,
+            manager: Arc::new(OnceLock::new()),
+            discord_http: Arc::new(OnceLock::new()),
         }
+    }
+
+    pub async fn snapshot(&self) -> Vec<(u64, PlayerRef)> {
+        self.inner
+            .lock()
+            .await
+            .iter()
+            .map(|(id, player)| (*id, player.clone()))
+            .collect()
     }
 
     /// Number of guilds with an active track (for /status).
@@ -120,20 +140,92 @@ impl Players {
     }
 }
 
-/// Builds the input for a track: native DSP pipeline when filters or a
-/// seek are active, plain lazy HTTP input otherwise.
+/// Builds the input for a track: HLS for live streams, the native DSP
+/// pipeline when filters or a seek are active, lazy HTTP otherwise.
 fn build_input(
     http: &reqwest::Client,
     stream_url: &str,
     filter_names: &[String],
     seek: f64,
+    is_live: bool,
 ) -> Result<Input, String> {
+    if is_live {
+        // Live = HLS segments; no seeking, filters unsupported for now.
+        return Ok(HlsRequest::new(http.clone(), stream_url.to_string()).into());
+    }
     if !filter_names.is_empty() || seek > 0.0 {
         let chain = FilterChain::from_names(filter_names)
             .ok_or_else(|| format!("unknown filter in {filter_names:?}"))?;
         pipeline::build_dsp_input("http", stream_url, chain, seek)
     } else {
         Ok(HttpRequest::new(http.clone(), stream_url.to_string()).into())
+    }
+}
+
+/// Posts (or replaces) the controller panel: a now-playing embed with
+/// pause/skip/stop/loop/shuffle buttons, in the last command channel.
+async fn update_controller(players: &Players, guild_id: u64, track: &Resolved) {
+    let Some(http) = players.discord_http.get().cloned() else { return };
+    let player_ref = players.get(guild_id).await;
+    let (channel, old_controller, volume, filters) = {
+        let player = player_ref.lock().await;
+        let Some(channel) = player.text_channel else { return };
+        (
+            channel,
+            player.controller,
+            player.volume,
+            player.filter_names(),
+        )
+    };
+
+    if let Some((old_channel, old_message)) = old_controller {
+        let _ = serenity::ChannelId::new(old_channel)
+            .delete_message(&http, serenity::MessageId::new(old_message))
+            .await;
+    }
+
+    let mut description = format!("**{}**", track.title);
+    if track.duration > 0.0 {
+        description.push_str(&format!(" `({}:{:02})`", track.duration as u64 / 60, track.duration as u64 % 60));
+    }
+    description.push_str(&format!("\n🔊 {:.0}%", volume * 100.0));
+    if !filters.is_empty() {
+        description.push_str(&format!(" · 🎛 {}", filters.join(", ")));
+    }
+    let mut embed = serenity::CreateEmbed::new()
+        .title("🎵 Now Playing")
+        .description(description)
+        .color(0x1B3A5C);
+    if let Some(thumbnail) = &track.thumbnail {
+        embed = embed.thumbnail(thumbnail.clone());
+    }
+
+    let buttons = serenity::CreateActionRow::Buttons(vec![
+        serenity::CreateButton::new("v3ctl_pause")
+            .emoji('⏯')
+            .style(serenity::ButtonStyle::Secondary),
+        serenity::CreateButton::new("v3ctl_skip")
+            .emoji('⏭')
+            .style(serenity::ButtonStyle::Primary),
+        serenity::CreateButton::new("v3ctl_stop")
+            .emoji('⏹')
+            .style(serenity::ButtonStyle::Danger),
+        serenity::CreateButton::new("v3ctl_loop")
+            .emoji('🔁')
+            .style(serenity::ButtonStyle::Secondary),
+        serenity::CreateButton::new("v3ctl_shuffle")
+            .emoji('🔀')
+            .style(serenity::ButtonStyle::Secondary),
+    ]);
+
+    let message = serenity::ChannelId::new(channel)
+        .send_message(
+            &http,
+            serenity::CreateMessage::new().embed(embed).components(vec![buttons]),
+        )
+        .await;
+    if let Ok(message) = message {
+        player_ref.lock().await.controller = Some((channel, message.id.get()));
     }
 }
 
@@ -173,7 +265,7 @@ pub async fn start_track(
         (player.volume, player.filter_names(), player.epoch)
     };
 
-    let input = build_input(&players.http, &stream_url, &filter_names, seek)?;
+    let input = build_input(&players.http, &stream_url, &filter_names, seek, track.is_live)?;
 
     let handle = {
         let mut call_lock = call.lock().await;
@@ -191,6 +283,15 @@ pub async fn start_track(
 
     player_ref.lock().await.handle = Some(handle);
     info!(guild = guild_id, title = %track.title, seek, "playing");
+
+    // Refresh the controller panel only on real track starts, not seeks.
+    if seek == 0.0 {
+        let players = players.clone();
+        let track = track.clone();
+        tokio::spawn(async move {
+            update_controller(&players, guild_id, &track).await;
+        });
+    }
     Ok(())
 }
 

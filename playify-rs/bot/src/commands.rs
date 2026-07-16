@@ -26,15 +26,20 @@ fn format_duration(seconds: f64) -> String {
     }
 }
 
-/// Joins the author's voice channel; returns the guild id.
+/// Joins the author's voice channel; returns the guild id. Also records
+/// the command channel as home for the controller panel.
 async fn ensure_voice(ctx: &Context<'_>) -> Result<u64, Error> {
+    let kawaii_mode = ctx
+        .guild_id()
+        .map(|g| ctx.data().players.settings.get(g.get()).kawaii)
+        .unwrap_or(false);
     let (guild_id, channel_id) = {
         let guild = ctx.guild().ok_or("This command only works in a server.")?;
         let channel = guild
             .voice_states
             .get(&ctx.author().id)
             .and_then(|vs| vs.channel_id)
-            .ok_or("Join a voice channel first.")?;
+            .ok_or_else(|| crate::i18n::t(kawaii_mode, "error.no_voice_channel"))?;
         (guild.id, channel)
     };
 
@@ -42,8 +47,14 @@ async fn ensure_voice(ctx: &Context<'_>) -> Result<u64, Error> {
         .await
         .ok_or("voice manager missing")?;
     if manager.get(guild_id).is_none() {
-        manager.join(guild_id, channel_id).await?;
+        manager
+            .join(guild_id, channel_id)
+            .await
+            .map_err(|_| crate::i18n::t(kawaii_mode, "error.connection"))?;
     }
+
+    let player_ref = ctx.data().players.get(guild_id.get()).await;
+    player_ref.lock().await.text_channel = Some(ctx.channel_id().get());
     Ok(guild_id.get())
 }
 
@@ -227,28 +238,89 @@ pub async fn clearqueue(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
-/// Remove a track from the queue by its position.
+/// Remove a track from the queue (by position, or pick from a menu).
 #[poise::command(slash_command, guild_only)]
 pub async fn remove(
     ctx: Context<'_>,
-    #[description = "Queue position to remove (see /queue)"]
+    #[description = "Queue position to remove (omit for an interactive menu)"]
     #[min = 1]
-    position: usize,
+    position: Option<usize>,
 ) -> Result<(), Error> {
     let guild_id = ctx.guild_id().ok_or("server only")?.get();
     let player_ref = ctx.data().players.get(guild_id).await;
-    let removed = {
-        let mut player = player_ref.lock().await;
-        player.queue.remove(position - 1)
-    };
-    match removed {
-        Some(track) => {
-            ctx.say(format!("🗑 Removed: **{}**", track.title)).await?;
-        }
-        None => {
-            ctx.say("No track at that position.").await?;
-        }
+
+    // Direct removal by index.
+    if let Some(position) = position {
+        let removed = player_ref.lock().await.queue.remove(position - 1);
+        match removed {
+            Some(track) => ctx.say(format!("🗑 Removed: **{}**", track.title)).await?,
+            None => ctx.say("No track at that position.").await?,
+        };
+        return Ok(());
     }
+
+    // Interactive select menu (up to 25 entries, Discord's limit).
+    let titles: Vec<String> = {
+        let player = player_ref.lock().await;
+        player.queue.iter().take(25).map(|t| t.title.clone()).collect()
+    };
+    if titles.is_empty() {
+        ctx.say("The queue is empty.").await?;
+        return Ok(());
+    }
+    let options: Vec<serenity::CreateSelectMenuOption> = titles
+        .iter()
+        .enumerate()
+        .map(|(index, title)| {
+            let mut label = format!("{}. {title}", index + 1);
+            label.truncate(95);
+            serenity::CreateSelectMenuOption::new(label, index.to_string())
+        })
+        .collect();
+    let menu = serenity::CreateSelectMenu::new(
+        "v3_remove",
+        serenity::CreateSelectMenuKind::String { options },
+    )
+    .placeholder("Pick the track to remove");
+    let reply = ctx
+        .send(
+            poise::CreateReply::default()
+                .content("🗑 Which track should be removed?")
+                .components(vec![serenity::CreateActionRow::SelectMenu(menu)]),
+        )
+        .await?;
+    let message = reply.message().await?;
+
+    let Some(interaction) = message
+        .await_component_interaction(ctx.serenity_context().shard.clone())
+        .timeout(std::time::Duration::from_secs(60))
+        .await
+    else {
+        reply
+            .edit(ctx, poise::CreateReply::default().content("⏳ Expired.").components(vec![]))
+            .await?;
+        return Ok(());
+    };
+    let chosen = match &interaction.data.kind {
+        serenity::ComponentInteractionDataKind::StringSelect { values } => {
+            values.first().and_then(|v| v.parse::<usize>().ok())
+        }
+        _ => None,
+    };
+    interaction
+        .create_response(ctx.http(), serenity::CreateInteractionResponse::Acknowledge)
+        .await?;
+    let text = match chosen {
+        // Re-check the title at removal time: the queue may have shifted.
+        Some(index) => match player_ref.lock().await.queue.remove(index) {
+            Some(track) => format!("🗑 Removed: **{}**", track.title),
+            None => "That track is no longer in the queue.".to_string(),
+        },
+        None => "Nothing removed.".to_string(),
+    };
+    reply
+        .edit(ctx, poise::CreateReply::default().content(text).components(vec![]))
+        .await?;
     Ok(())
 }
 
@@ -298,35 +370,100 @@ pub async fn resume(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
-/// Show the queue.
+const QUEUE_PAGE_SIZE: usize = 10;
+
+fn queue_page_content(
+    current: &Option<ytdlp::Resolved>,
+    position: f64,
+    tracks: &[ytdlp::Resolved],
+    page: usize,
+) -> String {
+    let total_pages = tracks.len().div_ceil(QUEUE_PAGE_SIZE).max(1);
+    let mut lines = Vec::new();
+    if let Some(current) = current {
+        lines.push(format!(
+            "**Now:** {} `[{} / {}]`",
+            current.title,
+            format_duration(position),
+            format_duration(current.duration),
+        ));
+    }
+    for (index, track) in tracks
+        .iter()
+        .enumerate()
+        .skip(page * QUEUE_PAGE_SIZE)
+        .take(QUEUE_PAGE_SIZE)
+    {
+        lines.push(format!("`{}.` {}", index + 1, track.title));
+    }
+    if tracks.len() > QUEUE_PAGE_SIZE {
+        lines.push(format!("*page {}/{} · {} tracks*", page + 1, total_pages, tracks.len()));
+    }
+    if lines.is_empty() {
+        "The queue is empty.".to_string()
+    } else {
+        lines.join("\n")
+    }
+}
+
+/// Show the queue with interactive pages.
 #[poise::command(slash_command, guild_only)]
 pub async fn queue(ctx: Context<'_>) -> Result<(), Error> {
     let guild_id = ctx.guild_id().ok_or("server only")?.get();
     let player_ref = ctx.data().players.get(guild_id).await;
-    let player = player_ref.lock().await;
+    let (current, position, tracks) = {
+        let player = player_ref.lock().await;
+        (
+            player.current.clone(),
+            player.position(),
+            player.queue.iter().cloned().collect::<Vec<_>>(),
+        )
+    };
 
-    let mut lines = Vec::new();
-    if let Some(current) = &player.current {
-        lines.push(format!(
-            "**Now:** {} `[{} / {}]`",
-            current.title,
-            format_duration(player.position()),
-            format_duration(current.duration),
-        ));
-    }
-    for (index, track) in player.queue.iter().take(10).enumerate() {
-        lines.push(format!("`{}.` {}", index + 1, track.title));
-    }
-    let remaining = player.queue.len().saturating_sub(10);
-    if remaining > 0 {
-        lines.push(format!("… and {remaining} more"));
-    }
-    drop(player);
+    let mut page = 0usize;
+    let total_pages = tracks.len().div_ceil(QUEUE_PAGE_SIZE).max(1);
+    let paginated = total_pages > 1;
 
-    if lines.is_empty() {
-        ctx.say("The queue is empty.").await?;
+    let components = if paginated {
+        vec![serenity::CreateActionRow::Buttons(vec![
+            serenity::CreateButton::new("v3q_prev").emoji('◀'),
+            serenity::CreateButton::new("v3q_next").emoji('▶'),
+        ])]
     } else {
-        ctx.say(lines.join("\n")).await?;
+        vec![]
+    };
+    let reply = ctx
+        .send(
+            poise::CreateReply::default()
+                .content(queue_page_content(&current, position, &tracks, page))
+                .components(components),
+        )
+        .await?;
+    if !paginated {
+        return Ok(());
+    }
+
+    let message = reply.message().await?;
+    while let Some(interaction) = message
+        .await_component_interaction(ctx.serenity_context().shard.clone())
+        .timeout(std::time::Duration::from_secs(120))
+        .await
+    {
+        match interaction.data.custom_id.as_str() {
+            "v3q_prev" => page = page.checked_sub(1).unwrap_or(total_pages - 1),
+            "v3q_next" => page = (page + 1) % total_pages,
+            _ => {}
+        }
+        interaction
+            .create_response(ctx.http(), serenity::CreateInteractionResponse::Acknowledge)
+            .await?;
+        reply
+            .edit(
+                ctx,
+                poise::CreateReply::default()
+                    .content(queue_page_content(&current, position, &tracks, page)),
+            )
+            .await?;
     }
     Ok(())
 }

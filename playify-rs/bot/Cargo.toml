@@ -21,3 +21,5 @@ tracing-subscriber = { workspace = true }
 dotenvy = "0.15"
 rand = "0.8"
 memory-stats = "1"
+# Loads the repo's existing i18n/*.yml translation files.
+serde_yaml = "0.9"

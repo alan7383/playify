@@ -14,7 +14,7 @@ use tracing::debug;
 const FORMAT: &str = "bestaudio[acodec=opus]/bestaudio/best";
 const PLAYLIST_CAP: usize = 200;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Resolved {
     pub title: String,
     /// Canonical page URL, used to re-resolve a fresh stream URL at play
