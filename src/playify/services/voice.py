@@ -70,33 +70,10 @@ async def fetch_video_info_with_retry(query: str, ydl_opts_override=None):
             raise e
 
 
-def ydl_worker(ydl_opts, query, cookies_file=None):
-    """
-    This function runs in a separate process.
-    It changes its own priority and performs the yt-dlp extraction.
-    It now handles exceptions internally to avoid pickling errors.
-    """
-    # Change the priority of the current process
-    p = psutil.Process()
-    if platform.system() == "Windows":
-        p.nice(psutil.IDLE_PRIORITY_CLASS)
-    else:
-        # A niceness value of 19 is the lowest priority
-        os.nice(19)
-
-    if cookies_file and os.path.exists(cookies_file):
-        ydl_opts["cookiefile"] = cookies_file
-
-    try:
-        # Execute the heavy task
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            result = ydl.extract_info(query, download=False)
-        # On success, return a dictionary indicating success and the data
-        return {"status": "success", "data": result}
-    except Exception as e:
-        # On failure, return a dictionary indicating error and the error message string
-        # This prevents trying to pickle the entire exception object.
-        return {"status": "error", "message": str(e)}
+# The worker function lives in its own minimal module: pool children import
+# the module defining their task, and importing voice.py (hence core.py and
+# the whole bot) used to cost ~100 MB of RSS per worker on Windows.
+from .ydl_worker import ydl_worker
 
 
 async def run_ydl_with_low_priority(
