@@ -75,6 +75,8 @@ responses echo it with `ok`/`data`/`error`. Ops: `auth`, `ping`, `connect`
 - [x] HTTP + local file playback without FFmpeg (symphonia)
 - [x] FFmpeg fallback for filter chains, seeks into network streams, live streams
 - [x] Volume, pause/resume, track events, 24/7 keepalive
+- [x] Karaoke: synced-lyrics position tracking and mid-track speed change
+      (filter toggle → seek_info → restart) verified live — karaoke never
+      touches audio directly, so no node-side work was needed
 - [ ] Native filter DSP (bass boost / nightcore without FFmpeg)
-- [ ] Karaoke playback-speed control node-side
 - [ ] Prometheus-style stats endpoint for the TUI dashboard
