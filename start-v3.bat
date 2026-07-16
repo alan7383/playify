@@ -42,10 +42,23 @@ if not defined YTDLP (
 )
 set "PLAYIFY_YTDLP=%CD%\%YTDLP%"
 
-REM --- 3. Build the bot if needed ---------------------------------------------
+REM --- 3. Get the bot binary ----------------------------------------------------
+REM Priority: local build ^> bin\ copy ^> prebuilt download ^> build from source.
 set "BOT=playify-rs\target\release\playify-v3.exe"
+if not exist "%BOT%" if exist "bin\playify-v3.exe" set "BOT=bin\playify-v3.exe"
 if not exist "%BOT%" (
-    echo   Binary not found: building playify-v3 - first build takes a few minutes...
+    echo   Downloading the prebuilt Playify v3 binary...
+    if not exist "bin" mkdir bin
+    powershell -NoProfile -Command "try { Invoke-WebRequest -Uri 'https://github.com/alan7383/playify/releases/latest/download/playify-v3-windows-x86_64.exe' -OutFile 'bin\playify-v3.exe' } catch { exit 1 }"
+    if exist "bin\playify-v3.exe" (
+        set "BOT=bin\playify-v3.exe"
+        echo   Prebuilt binary installed in bin\.
+    ) else (
+        echo   No prebuilt binary available: falling back to building from source.
+    )
+)
+if not exist "%BOT%" (
+    echo   Building playify-v3 - first build takes a few minutes...
     where cargo >nul 2>nul
     if errorlevel 1 (
         echo   [!] Rust is not installed. Installing via winget...

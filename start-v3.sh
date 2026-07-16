@@ -34,10 +34,24 @@ if [[ -z $YTDLP ]]; then
 fi
 export PLAYIFY_YTDLP="$(pwd)/$YTDLP"
 
-# ─── 3. Build the bot if needed ───────────────────────────────────────────
+# ─── 3. Get the bot binary ─────────────────────────────────────────────────
+# Priority: local build > bin/ copy > prebuilt download > build from source.
 BOT=playify-rs/target/release/playify-v3
+[[ ! -x $BOT && -x bin/playify-v3 ]] && BOT=bin/playify-v3
 if [[ ! -x $BOT ]]; then
-    echo "  Binary not found: building playify-v3 (first build takes a few minutes)..."
+    echo "  Downloading the prebuilt Playify v3 binary..."
+    mkdir -p bin
+    if curl -fL "https://github.com/alan7383/playify/releases/latest/download/playify-v3-linux-x86_64" -o bin/playify-v3 2>/dev/null; then
+        chmod +x bin/playify-v3
+        BOT=bin/playify-v3
+        echo "  Prebuilt binary installed in bin/."
+    else
+        rm -f bin/playify-v3
+        echo "  No prebuilt binary available: falling back to building from source."
+    fi
+fi
+if [[ ! -x $BOT ]]; then
+    echo "  Building playify-v3 (first build takes a few minutes)..."
     if ! command -v cargo >/dev/null; then
         echo "  [!] Rust is not installed. Install it with:"
         echo "      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"

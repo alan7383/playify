@@ -1,0 +1,63 @@
+name: Build Playify v3 binaries
+
+on:
+  push:
+    tags: ["v3*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            bot_artifact: playify-v3-windows-x86_64.exe
+            bot_path: playify-rs/target/release/playify-v3.exe
+            node_artifact: playify-node-windows-x86_64.exe
+            node_path: playify-rs/target/release/playify-rs.exe
+          - os: ubuntu-latest
+            bot_artifact: playify-v3-linux-x86_64
+            bot_path: playify-rs/target/release/playify-v3
+            node_artifact: playify-node-linux-x86_64
+            node_path: playify-rs/target/release/playify-rs
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cmake (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y cmake
+
+      - name: Build workspace (release)
+        working-directory: playify-rs
+        env:
+          CMAKE_POLICY_VERSION_MINIMUM: "3.5"
+        run: cargo build --release
+
+      - name: Collect artifacts
+        shell: bash
+        run: |
+          cp "${{ matrix.bot_path }}" "${{ matrix.bot_artifact }}"
+          cp "${{ matrix.node_path }}" "${{ matrix.node_artifact }}"
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.bot_artifact }}
+          path: |
+            ${{ matrix.bot_artifact }}
+            ${{ matrix.node_artifact }}
+
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ matrix.bot_artifact }}
+            ${{ matrix.node_artifact }}
