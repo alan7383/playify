@@ -85,6 +85,7 @@ pub struct Players {
     /// Set once at startup; lets background tasks reach Discord and voice.
     pub manager: Arc<OnceLock<Arc<Songbird>>>,
     pub discord_http: Arc<OnceLock<Arc<serenity::Http>>>,
+    pub discord_cache: Arc<OnceLock<Arc<serenity::Cache>>>,
 }
 
 impl Players {
@@ -95,6 +96,7 @@ impl Players {
             settings,
             manager: Arc::new(OnceLock::new()),
             discord_http: Arc::new(OnceLock::new()),
+            discord_cache: Arc::new(OnceLock::new()),
         }
     }
 

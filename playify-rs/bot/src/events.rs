@@ -45,6 +45,7 @@ impl EventHandler for VoiceEvents {
             let _ = self.players.manager.set(manager);
         }
         let _ = self.players.discord_http.set(ctx.http.clone());
+        let _ = self.players.discord_cache.set(ctx.cache.clone());
 
         static RESTORED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
         if !RESTORED.swap(true, std::sync::atomic::Ordering::SeqCst) {

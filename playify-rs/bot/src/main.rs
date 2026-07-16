@@ -207,12 +207,27 @@ async fn main() {
     let tui_done: std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>> = if tui_mode {
         let status: tui::StatusRef = Default::default();
         let quit = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let save_requested = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         tokio::spawn(tui::status_updater(
             players_for_shutdown.clone(),
             status.clone(),
         ));
+        // S hotkey: persist playback state on demand.
+        {
+            let players = players_for_shutdown.clone();
+            let save_requested = save_requested.clone();
+            tokio::spawn(async move {
+                loop {
+                    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                    if save_requested.swap(false, std::sync::atomic::Ordering::Relaxed) {
+                        persist::save(&players).await;
+                        info!("playback state saved (S)");
+                    }
+                }
+            });
+        }
         let handle = tokio::task::spawn_blocking(move || {
-            tui::run_blocking(log_buffer, status, quit);
+            tui::run_blocking(log_buffer, status, quit, save_requested);
         });
         Box::pin(async move {
             let _ = handle.await;
