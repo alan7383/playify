@@ -25,8 +25,9 @@ slash commands).
 | Status | Commands |
 | :--- | :--- |
 | ✅ Ported | play, playnext, play-files, search (select menu), skip (+position), jumpto, previous, stop, clearqueue, remove (index **or interactive select menu**), pause, resume, queue (**button pagination**), nowplaying, volume, defaultvolume, seek, filter (8 native DSP filters), loop, shuffle, autoplay (YT Mix + SoundCloud stations), 24_7 (normal/auto/off), reconnect, lyrics, karaoke (synced, LRCLIB), status, support, kaomoji, allowlist, leave |
-| ✅ UI/behavior | **controller button panel** (auto-posted per track: play/pause, skip, stop, loop, shuffle), auto-pause when alone + resume, idle disconnect, **queue persistence across restarts** (60 s snapshots + Ctrl-C save, rejoin & resume with seek on boot), **HLS live streams** (Twitch/YouTube live via songbird HlsRequest), i18n loading the repo's `i18n/*.yml` (en-US + en-x-kawaii; string coverage is partial and growing) |
-| 🚧 Not yet | full i18n string coverage across every reply, /setup pinned-channel controller, TUI dashboard (use the node + v2 TUI meanwhile) |
+| ✅ UI/behavior | **controller button panel** (auto-posted per track: play/pause, skip, stop, loop, shuffle; pin it with **/setup**), auto-pause when alone + resume, idle disconnect, **queue persistence across restarts** (60 s snapshots + Ctrl-C save, rejoin & resume with seek on boot), **HLS live streams** (Twitch/YouTube live via songbird HlsRequest) |
+| ✅ Locales | Both v2 locales covered: en-US, and en-x-kawaii via /kaomoji — a central reply hook decorates **every** command response, plus keys from the repo's `i18n/*.yml` where wired |
+| ✅ TUI | `--tui` launches a ratatui dashboard: online status, uptime, RSS, active players, now-playing list, live colored logs; Q quits and saves playback state |
 
 ## Platforms
 

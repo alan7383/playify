@@ -167,9 +167,10 @@ fn build_input(
 async fn update_controller(players: &Players, guild_id: u64, track: &Resolved) {
     let Some(http) = players.discord_http.get().cloned() else { return };
     let player_ref = players.get(guild_id).await;
+    let pinned = players.settings.get(guild_id).controller_channel;
     let (channel, old_controller, volume, filters) = {
         let player = player_ref.lock().await;
-        let Some(channel) = player.text_channel else { return };
+        let Some(channel) = pinned.or(player.text_channel) else { return };
         (
             channel,
             player.controller,

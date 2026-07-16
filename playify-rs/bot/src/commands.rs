@@ -1140,6 +1140,34 @@ pub async fn allowlist(
     Ok(())
 }
 
+#[derive(poise::ChoiceParameter)]
+pub enum SetupAction {
+    #[name = "here"]
+    Here,
+    #[name = "off"]
+    Off,
+}
+
+/// Pin the controller panel to a channel (or unpin it).
+#[poise::command(slash_command, guild_only, default_member_permissions = "MANAGE_CHANNELS")]
+pub async fn setup(ctx: Context<'_>, action: SetupAction) -> Result<(), Error> {
+    let guild_id = ctx.guild_id().ok_or("server only")?.get();
+    let settings = &ctx.data().players.settings;
+    let message = match action {
+        SetupAction::Here => {
+            let channel = ctx.channel_id().get();
+            settings.update(guild_id, |s| s.controller_channel = Some(channel));
+            format!("📌 Controller panel pinned to <#{channel}>.")
+        }
+        SetupAction::Off => {
+            settings.update(guild_id, |s| s.controller_channel = None);
+            "Controller unpinned: it follows your commands again.".to_string()
+        }
+    };
+    ctx.say(kawaii(&ctx, message)).await?;
+    Ok(())
+}
+
 pub fn all() -> Vec<poise::Command<crate::Data, Error>> {
     let mut lyrics_command = lyrics_cmd();
     lyrics_command.name = "lyrics".to_string();
@@ -1173,6 +1201,7 @@ pub fn all() -> Vec<poise::Command<crate::Data, Error>> {
         support(),
         kaomoji(),
         allowlist(),
+        setup(),
         leave(),
     ]
 }

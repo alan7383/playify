@@ -15,6 +15,10 @@ pub struct GuildSettings {
     pub kawaii: bool,
     #[serde(default)]
     pub allowed_channels: Vec<u64>,
+    /// Pinned controller channel (/setup); falls back to the last command
+    /// channel when unset.
+    #[serde(default)]
+    pub controller_channel: Option<u64>,
 }
 
 #[derive(Clone)]

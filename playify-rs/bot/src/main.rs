@@ -18,6 +18,7 @@ mod platforms;
 mod player;
 mod selftest;
 mod settings;
+mod tui;
 mod ytdlp;
 
 use std::sync::OnceLock;
@@ -36,6 +37,22 @@ pub struct Data {
 pub type Error = Box<dyn std::error::Error + Send + Sync>;
 pub type Context<'a> = poise::Context<'a, Data, Error>;
 
+fn kawaii_reply(ctx: Context<'_>, mut reply: poise::CreateReply) -> poise::CreateReply {
+    let Some(guild) = ctx.guild_id() else { return reply };
+    if !ctx.data().players.settings.get(guild.get()).kawaii {
+        return reply;
+    }
+    if let Some(content) = &mut reply.content {
+        if !content.is_empty() && !content.contains('◕') && !content.contains('ヮ') {
+            const KAOMOJI: &[&str] =
+                &["(◕‿◕)♪", "☆(≧▽≦)☆", "(ﾉ´ヮ`)ﾉ*:･ﾟ✧", "♪(´▽｀)", "(=^･ω･^=)♪"];
+            let pick = KAOMOJI[content.len() % KAOMOJI.len()];
+            content.push_str(&format!(" {pick}"));
+        }
+    }
+    reply
+}
+
 fn load_env() {
     // Works from the workspace dir, the repo root, or next to the binary.
     for path in [".env", "../.env", "../../.env"] {
@@ -47,12 +64,24 @@ fn load_env() {
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "info,serenity=warn,songbird=warn".into()),
-        )
-        .init();
+    let tui_mode = std::env::args().any(|arg| arg == "--tui");
+    let log_buffer: tui::LogBuffer = Default::default();
+
+    let env_filter = || {
+        tracing_subscriber::EnvFilter::try_from_default_env()
+            .unwrap_or_else(|_| "info,serenity=warn,songbird=warn".into())
+    };
+    if tui_mode {
+        // Logs feed the dashboard's panel instead of stdout.
+        tracing_subscriber::fmt()
+            .with_env_filter(env_filter())
+            .with_ansi(false)
+            .without_time()
+            .with_writer(tui::LogWriter(log_buffer.clone()))
+            .init();
+    } else {
+        tracing_subscriber::fmt().with_env_filter(env_filter()).init();
+    }
     load_env();
 
     let token = std::env::var("DISCORD_TOKEN").expect("DISCORD_TOKEN missing (.env)");
@@ -91,6 +120,10 @@ async fn main() {
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             commands: commands::all(),
+            // Full-coverage kawaii locale: every reply from every command
+            // passes through here, so /kaomoji affects all of them (v2's
+            // i18n has exactly two locales: en-US and en-x-kawaii).
+            reply_callback: Some(kawaii_reply),
             // Channel allowlist, mirroring v2's admin allowlist.
             command_check: Some(|ctx: Context<'_>| {
                 Box::pin(async move {
@@ -170,7 +203,25 @@ async fn main() {
         .await
         .expect("client build failed");
 
-    // Save playback state on Ctrl-C so the next boot resumes seamlessly.
+    // Optional terminal dashboard; quitting it shuts the bot down cleanly.
+    let tui_done: std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>> = if tui_mode {
+        let status: tui::StatusRef = Default::default();
+        let quit = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        tokio::spawn(tui::status_updater(
+            players_for_shutdown.clone(),
+            status.clone(),
+        ));
+        let handle = tokio::task::spawn_blocking(move || {
+            tui::run_blocking(log_buffer, status, quit);
+        });
+        Box::pin(async move {
+            let _ = handle.await;
+        })
+    } else {
+        Box::pin(std::future::pending())
+    };
+
+    // Save playback state on Ctrl-C / TUI quit so the next boot resumes.
     tokio::select! {
         result = client.start() => {
             if let Err(e) = result {
@@ -179,6 +230,9 @@ async fn main() {
         }
         _ = tokio::signal::ctrl_c() => {
             info!("shutting down: saving playback state");
+            persist::save(&players_for_shutdown).await;
+        }
+        _ = tui_done => {
             persist::save(&players_for_shutdown).await;
         }
     }
