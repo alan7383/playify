@@ -101,11 +101,22 @@ def _build_status_panel(bot: BotProcess) -> Panel:
         ("Crashes", str(bot.crash_count) if bot.crash_count > 0 else "0"),
     ]
 
+    # Rust audio node (only when its /metrics endpoint answers)
+    node = bot.node
+    if node.available:
+        stats.append(("Node", f"Online · {node.engines_str}"))
+        stats.append(("Node RAM", f"{node.memory_mb:.0f} MB"))
+    else:
+        stats.append(("Node", "--"))
+        stats.append(("Node RAM", "--"))
+
     for label, value in stats:
         content.append(f"  {label:<10}", style=f"{GRAY}")
         val_style = f"bold {WHITE}"
         if label == "Crashes" and bot.crash_count > 0:
             val_style = f"bold {RED}"
+        if label == "Node" and node.available:
+            val_style = f"bold {GREEN}"
         content.append(f" {value}\n", style=val_style)
 
     return Panel(
@@ -286,7 +297,7 @@ def _build_crash_panel(bot: BotProcess) -> Panel:
 # Available for log lines = terminal_height - header(3) - status(12) - hotkeys(3) - logs_border(2)
 
 HEADER_HEIGHT = 3
-STATUS_PANEL_HEIGHT = 15
+STATUS_PANEL_HEIGHT = 17  # +2 rows for the Rust node stats
 HOTKEYS_HEIGHT = 3
 LOGS_BORDER_HEIGHT = 2  # top border + bottom border of the log panel
 

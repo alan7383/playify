@@ -56,7 +56,8 @@ PLAYIFY_RUST_NODE=1
 # optional:
 PLAYIFY_NODE_PORT=8791
 PLAYIFY_NODE_SECRET=change-me
-PLAYIFY_FFMPEG=C:\path\to\ffmpeg.exe   # node-side ffmpeg for filters/seek
+PLAYIFY_NODE_METRICS_PORT=8792         # Prometheus /metrics; 0 disables
+PLAYIFY_FFMPEG=C:\path\to\ffmpeg.exe   # node-side ffmpeg (live streams only)
 ```
 
 Or run it manually / under systemd: `./playify-rs` (it binds 127.0.0.1 only).
@@ -89,4 +90,7 @@ responses echo it with `ok`/`data`/`error`. Ops: `auth`, `ping`, `connect`
       earrape (bit crusher) — verified live, zero FFmpeg processes
 - [x] Native seek, including YouTube m4a, via a seekable Range-request HTTP
       source with automatic mid-stream reconnection
-- [ ] Prometheus-style stats endpoint for the TUI dashboard
+- [x] Stats: `stats` WebSocket op + Prometheus endpoint on
+      `http://127.0.0.1:8792/metrics` (PLAYIFY_NODE_METRICS_PORT, 0 to
+      disable) — sessions, tracks playing per engine, memory, uptime.
+      The TUI dashboard polls it and shows the node next to the bot stats.

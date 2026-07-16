@@ -15,6 +15,7 @@
 
 mod dsp;
 mod pipeline;
+mod stats;
 
 use std::{
     collections::HashMap, net::SocketAddr, num::NonZeroU64, process::Stdio, sync::Arc,
@@ -217,11 +218,14 @@ async fn handle_request(
     sessions: &Sessions,
     events_tx: &broadcast::Sender<String>,
     http_client: &reqwest::Client,
+    metrics: &Arc<stats::NodeMetrics>,
 ) -> Result<Value, String> {
     let op = msg.get("op").and_then(Value::as_str).unwrap_or_default();
 
     match op {
         "ping" => Ok(json!({"pong": true})),
+
+        "stats" => Ok(stats::stats_json(sessions, metrics).await),
 
         "connect" => {
             let args: ConnectArgs =
@@ -394,6 +398,7 @@ async fn handle_request(
 
             session.volume = args.volume;
             session.handle = Some(handle);
+            metrics.track_started();
             info!(guild = guild_id, source = %args.source_type, engine, "playing track");
             Ok(json!({"playing": true, "track_id": track_id, "engine": engine}))
         }
@@ -479,6 +484,7 @@ async fn handle_client(
     events_tx: broadcast::Sender<String>,
     http_client: reqwest::Client,
     secret: Option<String>,
+    metrics: Arc<stats::NodeMetrics>,
 ) {
     let ws = match tokio_tungstenite::accept_async(stream).await {
         Ok(ws) => ws,
@@ -539,7 +545,7 @@ async fn handle_client(
                     continue;
                 }
 
-                let reply = match handle_request(msg, &sessions, &events_tx, &http_client).await {
+                let reply = match handle_request(msg, &sessions, &events_tx, &http_client, &metrics).await {
                     Ok(data) => json!({
                         "op": "response", "request_id": request_id, "ok": true, "data": data,
                     }),
@@ -589,6 +595,19 @@ async fn main() {
     let sessions: Sessions = Arc::new(Mutex::new(HashMap::new()));
     let (events_tx, _) = broadcast::channel::<String>(256);
     let http_client = reqwest::Client::new();
+    let metrics = Arc::new(stats::NodeMetrics::new());
+
+    let metrics_port: u16 = std::env::var("PLAYIFY_NODE_METRICS_PORT")
+        .ok()
+        .and_then(|p| p.parse().ok())
+        .unwrap_or(8792);
+    if metrics_port != 0 {
+        tokio::spawn(stats::run_metrics_server(
+            metrics_port,
+            sessions.clone(),
+            metrics.clone(),
+        ));
+    }
 
     loop {
         tokio::select! {
@@ -602,6 +621,7 @@ async fn main() {
                             events_tx.clone(),
                             http_client.clone(),
                             secret.clone(),
+                            metrics.clone(),
                         ));
                     }
                     Err(e) => warn!("accept failed: {e}"),

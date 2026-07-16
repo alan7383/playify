@@ -37,6 +37,8 @@ reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"
 async-trait = "0.1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+# Cross-platform process RSS for the stats endpoint.
+memory-stats = "1"
 
 [profile.release]
 lto = true

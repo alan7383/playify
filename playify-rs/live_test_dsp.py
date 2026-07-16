@@ -34,6 +34,7 @@ RESULTS = {
     "sustained_playback": False,
     "stacked_filters_native": False,
     "seek_native": False,
+    "stats_and_metrics": False,
     "errors": [],
 }
 
@@ -127,6 +128,25 @@ async def run_test():
     status = await node_client.request("status", guild_id=guild_id)
     RESULTS["seek_native"] = vc.is_playing() and status.get("engine") == "dsp"
     print(f"[TEST] seek_native: {RESULTS['seek_native']} (status: {status})")
+
+    # -- 5. stats op + Prometheus endpoint while a track plays ----------------
+    stats = await node_client.request("stats", guild_id=guild_id)
+    import urllib.request
+
+    metrics_port = os.getenv("PLAYIFY_NODE_METRICS_PORT", "8792")
+    with urllib.request.urlopen(
+        f"http://127.0.0.1:{metrics_port}/metrics", timeout=2
+    ) as response:
+        metrics_text = response.read().decode()
+    RESULTS["stats_and_metrics"] = (
+        stats.get("sessions") == 1
+        and stats.get("tracks_playing") == 1
+        and stats.get("engines", {}).get("dsp") == 1
+        and stats.get("tracks_played_total", 0) >= 3  # initial + filter restart + seek
+        and 'playify_node_engine_tracks{engine="dsp"} 1' in metrics_text
+        and "playify_node_memory_bytes" in metrics_text
+    )
+    print(f"[TEST] stats_and_metrics: {RESULTS['stats_and_metrics']} (stats: {stats})")
 
     # -- teardown -------------------------------------------------------------
     music_player.manual_stop = True
