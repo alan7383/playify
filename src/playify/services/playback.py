@@ -572,6 +572,7 @@ async def play_audio(guild_id, seek_time=0, is_a_loop=False, song_that_just_ende
                 volume=music_player.volume,
                 seek=seek_time,
                 filters=filter_chain,
+                filter_names=[f for f in active_filters if f in AUDIO_FILTERS],
                 is_local_file=music_player.current_info.get("source_type") == "file",
                 force_ffmpeg=music_player.is_current_live,
             )

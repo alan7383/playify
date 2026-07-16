@@ -32,7 +32,8 @@ futures-util = "0.3"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # Must match the reqwest major used by songbird's HttpRequest input.
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+# "blocking" is used by the DSP decode thread (seekable Range-based reads).
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "blocking"] }
 async-trait = "0.1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

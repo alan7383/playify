@@ -21,9 +21,15 @@ real-time audio path to this node:
 | :--- | :--- | :--- |
 | 20 ms voice send loop | discord.py thread per guild | songbird async mixer |
 | Decode + resample | FFmpeg subprocess per track | symphonia in-process (HTTP/local) |
-| Opus encode + XSalsa20 | libopus + PyNaCl via Python | native, no GIL contention |
+| Opus encode + E2EE (DAVE) | libopus + PyNaCl/davey via Python | native, no GIL contention |
 | 24/7 idle keep-alive | looping FFmpeg `anullsrc` | zero-cost native keepalive |
-| Filters (nightcore, reverb…) | FFmpeg subprocess | FFmpeg subprocess (spawned by the node) |
+| Filters (nightcore, reverb…) | FFmpeg subprocess | native DSP (`dsp.rs`), in-process |
+| Seek | FFmpeg `-ss` subprocess | native (symphonia + HTTP Range) |
+
+The only remaining FFmpeg use is live/HLS streams (Twitch, YouTube live) and
+unrecognised filter names; `PLAYIFY_FORCE_FFMPEG=1` restores the old behavior
+as an escape hatch. Engine actually used is reported per track
+(`engine`: `direct` | `dsp` | `ffmpeg`) in play/status responses.
 
 yt-dlp, Spotify resolution, lyrics, autoplay and every command stay in Python.
 
@@ -78,5 +84,9 @@ responses echo it with `ok`/`data`/`error`. Ops: `auth`, `ping`, `connect`
 - [x] Karaoke: synced-lyrics position tracking and mid-track speed change
       (filter toggle → seek_info → restart) verified live — karaoke never
       touches audio directly, so no node-side work was needed
-- [ ] Native filter DSP (bass boost / nightcore without FFmpeg)
+- [x] Native filter DSP: slowed/spedup/nightcore (Catmull-Rom resampler),
+      bassboost/muffled (RBJ biquads), reverb (multi-tap echo), 8d (LFO pan),
+      earrape (bit crusher) — verified live, zero FFmpeg processes
+- [x] Native seek, including YouTube m4a, via a seekable Range-request HTTP
+      source with automatic mid-stream reconnection
 - [ ] Prometheus-style stats endpoint for the TUI dashboard

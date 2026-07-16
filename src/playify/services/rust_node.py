@@ -409,23 +409,21 @@ class RustVoiceClient(discord.VoiceProtocol):
         volume: float = 1.0,
         seek: float = 0.0,
         filters: str = "",
+        filter_names=None,
         is_local_file: bool = False,
         force_ffmpeg: bool = False,
     ):
-        """Starts playback on the node, picking the cheapest capable source.
+        """Starts playback on the node, which picks the cheapest capable engine.
 
-        Plain network streams and local files are decoded natively by the
-        node (symphonia) with no FFmpeg process at all; FFmpeg is only used
-        when a filter chain, a seek into a network stream, or an unusual
-        container requires it.
+        The node decodes natively (symphonia) whenever it can — including
+        filters and seeks, which run through its in-process DSP pipeline.
+        FFmpeg only remains for live/HLS streams (force_ffmpeg) and for
+        filter names the node does not recognise (the `filters` ffmpeg
+        chain is the fallback recipe in that case).
         """
-        needs_ffmpeg = bool(filters) or seek > 0 or force_ffmpeg
-        if needs_ffmpeg:
-            source_type = "ffmpeg"
-        elif is_local_file:
-            source_type = "file"
-        else:
-            source_type = "http"
+        source_type = (
+            "ffmpeg" if force_ffmpeg else ("file" if is_local_file else "http")
+        )
 
         self._current_track_id = None  # stale events are ignored from here on
         self._after = after
@@ -440,10 +438,13 @@ class RustVoiceClient(discord.VoiceProtocol):
             seek=seek,
             seek_pre_input=is_local_file,
             filters=filters or None,
+            filter_names=sorted(filter_names or []),
             reconnect_flags=not is_local_file,
         )
         self._current_track_id = data.get("track_id")
         self._source = _NodeVolumeSource(self, volume)
+        engine = data.get("engine", "?")
+        logger.info(f"[{self.guild.id}] Node playing via engine '{engine}'.")
 
     def stop(self):
         self._fire_and_forget("stop")

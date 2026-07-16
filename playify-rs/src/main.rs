@@ -13,6 +13,9 @@
 //!                    | "driver_connect" | "driver_disconnect" | "driver_reconnect",
 //!                    "guild_id": ...}
 
+mod dsp;
+mod pipeline;
+
 use std::{
     collections::HashMap, net::SocketAddr, num::NonZeroU64, process::Stdio, sync::Arc,
     time::Duration,
@@ -31,6 +34,8 @@ use songbird::{
     Config, ConnectionInfo,
 };
 use symphonia::core::io::ReadOnlySource;
+
+use crate::dsp::FilterChain;
 use tokio::{
     net::{TcpListener, TcpStream},
     sync::{broadcast, Mutex},
@@ -47,6 +52,8 @@ struct Session {
     ffmpeg: Option<std::process::Child>,
     volume: f32,
     track_id: u64,
+    /// Which decode engine the current track uses: "direct", "dsp", "ffmpeg".
+    engine: &'static str,
 }
 
 impl Session {
@@ -157,6 +164,10 @@ struct PlayArgs {
     seek_pre_input: bool,
     #[serde(default)]
     filters: Option<String>,
+    /// Playify filter names ("nightcore", "bassboost", ...). When every name
+    /// is known, the native DSP pipeline is used instead of FFmpeg.
+    #[serde(default)]
+    filter_names: Vec<String>,
     #[serde(default)]
     reconnect_flags: bool,
 }
@@ -265,6 +276,7 @@ async fn handle_request(
                     ffmpeg: None,
                     volume: 1.0,
                     track_id: 0,
+                    engine: "idle",
                 }
             });
 
@@ -296,6 +308,58 @@ async fn handle_request(
                 serde_json::from_value(msg.clone()).map_err(|e| e.to_string())?;
             let guild_id = args.guild_id;
 
+            // Engine selection, most native first (no lock held while the
+            // source is opened):
+            //   - "dsp":    in-process symphonia decode + native filters/seek
+            //   - "direct": songbird's own lazy input (no filters, no seek)
+            //   - "ffmpeg": live/HLS streams, unknown filters, or the
+            //               PLAYIFY_FORCE_FFMPEG escape hatch
+            let force_ffmpeg = std::env::var("PLAYIFY_FORCE_FFMPEG")
+                .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+                .unwrap_or(false);
+
+            let mut ffmpeg_child: Option<std::process::Child> = None;
+            let (input, engine): (Input, &'static str) = 'engine: {
+                if args.source_type != "ffmpeg" && !force_ffmpeg {
+                    if !args.filter_names.is_empty() || args.seek > 0.0 {
+                        if let Some(chain) = FilterChain::from_names(&args.filter_names) {
+                            match pipeline::build_dsp_input(
+                                &args.source_type,
+                                &args.url,
+                                chain,
+                                args.seek,
+                            ) {
+                                Ok(input) => break 'engine (input, "dsp"),
+                                Err(e) => warn!(
+                                    "dsp pipeline unavailable ({e}), falling back to ffmpeg"
+                                ),
+                            }
+                        } else {
+                            warn!(
+                                "unknown filter in {:?}, falling back to ffmpeg",
+                                args.filter_names
+                            );
+                        }
+                    } else if args.source_type == "file" {
+                        break 'engine (File::new(args.url.clone()).into(), "direct");
+                    } else {
+                        break 'engine (
+                            HttpRequest::new(http_client.clone(), args.url.clone()).into(),
+                            "direct",
+                        );
+                    }
+                }
+
+                let mut child =
+                    build_ffmpeg(&args).map_err(|e| format!("failed to spawn ffmpeg: {e}"))?;
+                let stdout = child.stdout.take().ok_or("ffmpeg has no stdout")?;
+                ffmpeg_child = Some(child);
+                (
+                    RawAdapter::new(ReadOnlySource::new(stdout), SAMPLE_RATE, CHANNELS).into(),
+                    "ffmpeg",
+                )
+            };
+
             let mut sessions_guard = sessions.lock().await;
             let session = sessions_guard
                 .get_mut(&guild_id)
@@ -303,26 +367,8 @@ async fn handle_request(
 
             // One track per guild: replace whatever is playing.
             session.stop_track();
-
-            let input: Input = match args.source_type.as_str() {
-                "file" => File::new(args.url.clone()).into(),
-                "ffmpeg" => {
-                    let child = build_ffmpeg(&args).map_err(|e| {
-                        format!("failed to spawn ffmpeg: {e}")
-                    })?;
-                    let stdout = child.stdout.as_ref();
-                    if stdout.is_none() {
-                        return Err("ffmpeg has no stdout".into());
-                    }
-                    // Ownership dance: keep the Child for cleanup, hand its
-                    // stdout to songbird as a raw f32 PCM stream.
-                    let mut child = child;
-                    let stdout = child.stdout.take().unwrap();
-                    session.ffmpeg = Some(child);
-                    RawAdapter::new(ReadOnlySource::new(stdout), SAMPLE_RATE, CHANNELS).into()
-                }
-                _ => HttpRequest::new(http_client.clone(), args.url.clone()).into(),
-            };
+            session.ffmpeg = ffmpeg_child;
+            session.engine = engine;
 
             session.track_id += 1;
             let track_id = session.track_id;
@@ -348,8 +394,8 @@ async fn handle_request(
 
             session.volume = args.volume;
             session.handle = Some(handle);
-            info!(guild = guild_id, source = %args.source_type, "playing track");
-            Ok(json!({"playing": true, "track_id": track_id}))
+            info!(guild = guild_id, source = %args.source_type, engine, "playing track");
+            Ok(json!({"playing": true, "track_id": track_id, "engine": engine}))
         }
 
         "stop" => {
@@ -397,6 +443,7 @@ async fn handle_request(
             Ok(json!({
                 "connected": session.is_some(),
                 "has_track": session.map(|s| s.handle.is_some()).unwrap_or(false),
+                "engine": session.map(|s| s.engine).unwrap_or("idle"),
             }))
         }
 
