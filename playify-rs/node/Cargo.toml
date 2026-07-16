@@ -1,0 +1,31 @@
+[package]
+name = "playify-node"
+version = "0.1.0"
+edition = "2021"
+description = "Standalone Rust audio node for Playify (songbird driver + local WebSocket control plane)"
+license = "MIT"
+
+# Keep the historical binary name: the Python bot's auto-spawn looks for
+# target/release/playify-rs[.exe].
+[[bin]]
+name = "playify-rs"
+path = "src/main.rs"
+
+[dependencies]
+playify-audio = { path = "../audio" }
+
+# Voice driver only: discord.py keeps the gateway and forwards
+# VOICE_SERVER_UPDATE / VOICE_STATE_UPDATE payloads to us over WebSocket.
+songbird = { workspace = true, features = ["driver", "rustls", "tungstenite"] }
+symphonia = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync", "net", "signal", "time"] }
+tokio-tungstenite = "0.23"
+futures-util = "0.3"
+serde = { workspace = true }
+serde_json = { workspace = true }
+reqwest = { workspace = true }
+async-trait = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+# Cross-platform process RSS for the stats endpoint.
+memory-stats = "1"

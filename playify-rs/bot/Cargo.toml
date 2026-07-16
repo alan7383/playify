@@ -1,0 +1,23 @@
+[package]
+name = "playify-v3"
+version = "0.1.0"
+edition = "2021"
+description = "Playify v3 - the full-Rust Discord music bot (experimental)"
+license = "MIT"
+
+[dependencies]
+playify-audio = { path = "../audio" }
+
+poise = "0.6"
+songbird = { workspace = true, features = ["serenity", "gateway", "driver", "rustls", "tungstenite"] }
+symphonia = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync", "time", "process", "signal"] }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+async-trait = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+dotenvy = "0.15"
+rand = "0.8"
+memory-stats = "1"

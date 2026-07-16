@@ -22,6 +22,21 @@
 
 pub const OUTPUT_RATE: u32 = 48_000;
 
+/// Real playback speed for a set of filter names relative to the 48 kHz
+/// output (asetrate semantics) — used for position bookkeeping by callers.
+pub fn effective_speed(names: &[String]) -> f64 {
+    let mut asetrate = None;
+    for name in names {
+        match name.as_str() {
+            "slowed" => asetrate = Some(44_100.0 * 0.8),
+            "spedup" => asetrate = Some(44_100.0 * 1.2),
+            "nightcore" => asetrate = Some(44_100.0 * 1.25),
+            _ => {}
+        }
+    }
+    asetrate.map(|a| a / OUTPUT_RATE as f64).unwrap_or(1.0)
+}
+
 /// A parsed filter chain: one optional absolute asetrate target (applied by
 /// the resampler) plus an ordered list of per-sample effects.
 pub struct FilterChain {

@@ -1,0 +1,12 @@
+[package]
+name = "playify-audio"
+version = "0.1.0"
+edition = "2021"
+description = "Playify's native audio engine: DSP filters and the symphonia decode pipeline"
+license = "MIT"
+
+[dependencies]
+songbird = { workspace = true, features = ["driver", "rustls", "tungstenite"] }
+symphonia = { workspace = true }
+reqwest = { workspace = true }
+tracing = { workspace = true }

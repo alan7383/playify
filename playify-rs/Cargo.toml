@@ -1,18 +1,9 @@
-[package]
-name = "playify-rs"
-version = "0.1.0"
-edition = "2021"
-description = "Standalone Rust audio node for Playify (songbird driver + local WebSocket control plane)"
-license = "MIT"
+[workspace]
+resolver = "2"
+members = ["audio", "node", "bot"]
 
-[dependencies]
-# Voice driver only: discord.py keeps the gateway and forwards
-# VOICE_SERVER_UPDATE / VOICE_STATE_UPDATE payloads to us over WebSocket.
-songbird = { version = "0.6", default-features = false, features = ["driver", "rustls", "tungstenite"] }
-
-# Songbird does not request any codecs from symphonia by itself; enabling the
-# features here activates them for the whole dependency graph (cargo feature
-# unification), which is the officially documented way to add formats.
+[workspace.dependencies]
+songbird = { version = "0.6", default-features = false }
 symphonia = { version = "0.5", features = [
     "aac",
     "alac",
@@ -25,20 +16,13 @@ symphonia = { version = "0.5", features = [
     "vorbis",
     "wav",
 ] }
-
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "net", "signal", "time"] }
-tokio-tungstenite = "0.23"
-futures-util = "0.3"
+tokio = { version = "1" }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "blocking", "json"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-# Must match the reqwest major used by songbird's HttpRequest input.
-# "blocking" is used by the DSP decode thread (seekable Range-based reads).
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "blocking"] }
-async-trait = "0.1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-# Cross-platform process RSS for the stats endpoint.
-memory-stats = "1"
+async-trait = "0.1"
 
 [profile.release]
 lto = true

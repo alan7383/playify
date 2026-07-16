@@ -13,9 +13,9 @@
 //!                    | "driver_connect" | "driver_disconnect" | "driver_reconnect",
 //!                    "guild_id": ...}
 
-mod dsp;
-mod pipeline;
 mod stats;
+
+use playify_audio::pipeline;
 
 use std::{
     collections::HashMap, net::SocketAddr, num::NonZeroU64, process::Stdio, sync::Arc,
@@ -36,7 +36,7 @@ use songbird::{
 };
 use symphonia::core::io::ReadOnlySource;
 
-use crate::dsp::FilterChain;
+use playify_audio::dsp::FilterChain;
 use tokio::{
     net::{TcpListener, TcpStream},
     sync::{broadcast, Mutex},

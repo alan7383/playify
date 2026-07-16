@@ -1,3 +1,16 @@
+# playify-rs — Rust workspace
+
+Three crates:
+
+- **`audio/`** — the shared native engine: DSP filters, symphonia decode
+  pipeline, seekable HTTP source.
+- **`node/`** — the audio node for the Python bot (v2 hybrid mode): builds
+  the `playify-rs` binary described below.
+- **`bot/`** — **Playify v3**, the experimental full-Rust bot (35 MB RSS,
+  no resident Python). See `bot/README.md`.
+
+---
+
 # playify-rs — Rust audio node
 
 A standalone voice engine for Playify, built on [songbird](https://github.com/serenity-rs/songbird)
