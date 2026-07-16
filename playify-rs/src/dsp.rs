@@ -5,21 +5,29 @@
 //! interleaved stereo f32 frames at 48 kHz (the mixer's native format).
 //!
 //! FFmpeg equivalences (see AUDIO_FILTERS in core.py):
-//!   slowed     asetrate=44100*0.8            -> Speed(0.8)   (resampler)
-//!   spedup     asetrate=44100*1.2            -> Speed(1.2)
-//!   nightcore  asetrate=44100*1.25,atempo=1  -> Speed(1.25)
+//!   slowed     asetrate=44100*0.8            -> asetrate 35280 Hz (resampler)
+//!   spedup     asetrate=44100*1.2            -> asetrate 52920 Hz
+//!   nightcore  asetrate=44100*1.25,atempo=1  -> asetrate 55125 Hz
 //!   reverb     aecho=0.8:0.9:40|50|60:...    -> Echo (FIR multi-tap)
 //!   8d         apulsator=hz=0.08             -> Pulsator (LFO pan)
-//!   muffled    lowpass=f=500                 -> Biquad low-pass
-//!   bassboost  bass=g=10                     -> Biquad low-shelf
+//!   muffled    lowpass=f=500                 -> Biquad low-pass (Q=0.707)
+//!   bassboost  bass=g=10                     -> Biquad low-shelf (f=100, Q=0.5)
 //!   earrape    acrusher=...                  -> Crusher (drive + quantize)
+//!
+//! Exactness note on asetrate: FFmpeg's asetrate relabels the stream to an
+//! ABSOLUTE rate (44100*factor), regardless of the input's real rate. With
+//! the typical 48 kHz Opus sources from YouTube, `nightcore` therefore plays
+//! at 55125/48000 = 1.148x — not 1.25x. The resampler reproduces exactly
+//! that: step = asetrate / 48000, independent of the source rate.
 
 pub const OUTPUT_RATE: u32 = 48_000;
 
-/// A parsed filter chain: one optional speed factor (applied by the
-/// resampler) plus an ordered list of per-sample effects.
+/// A parsed filter chain: one optional absolute asetrate target (applied by
+/// the resampler) plus an ordered list of per-sample effects.
 pub struct FilterChain {
-    pub speed: f64,
+    /// Absolute rate label, FFmpeg-style. In a chained graph each asetrate
+    /// overwrites the previous label, so the last named speed filter wins.
+    pub asetrate: Option<f64>,
     effects: Vec<Effect>,
 }
 
@@ -35,16 +43,17 @@ impl FilterChain {
     /// Builds a chain from Playify filter names. Returns None if any name
     /// is unknown, in which case the caller should fall back to FFmpeg.
     pub fn from_names(names: &[String]) -> Option<Self> {
-        let mut speed = 1.0f64;
+        let mut asetrate = None;
         let mut effects = Vec::new();
         for name in names {
             match name.as_str() {
-                "slowed" => speed *= 0.8,
-                "spedup" => speed *= 1.2,
-                "nightcore" => speed *= 1.25,
+                "slowed" => asetrate = Some(44_100.0 * 0.8),
+                "spedup" => asetrate = Some(44_100.0 * 1.2),
+                "nightcore" => asetrate = Some(44_100.0 * 1.25),
                 "muffled" => effects.push(Effect::Lowpass(Biquad::lowpass(500.0, 0.707))),
                 "bassboost" => {
-                    effects.push(Effect::LowShelf(Biquad::low_shelf(100.0, 10.0, 1.0)))
+                    // ffmpeg `bass` defaults: f=100 Hz, width_type=q, width=0.5.
+                    effects.push(Effect::LowShelf(Biquad::low_shelf_q(100.0, 10.0, 0.5)))
                 }
                 "reverb" => effects.push(Effect::Echo(Echo::new(
                     0.8,
@@ -56,7 +65,7 @@ impl FilterChain {
                 _ => return None,
             }
         }
-        Some(FilterChain { speed, effects })
+        Some(FilterChain { asetrate, effects })
     }
 
     /// Processes interleaved stereo frames in place.
@@ -77,8 +86,10 @@ impl FilterChain {
 }
 
 // ---------------------------------------------------------------------------
-// Resampler: converts an arbitrary input rate to 48 kHz while folding in the
-// pitch/speed factor (asetrate semantics: speed and pitch change together).
+// Resampler: converts the source to 48 kHz while reproducing FFmpeg's
+// asetrate relabelling (speed and pitch change together). The consumption
+// step is `asetrate / 48000` — independent of the source's real rate,
+// exactly like `-af asetrate=A` followed by `-ar 48000`.
 // Catmull-Rom (cubic) interpolation over stereo frames.
 // ---------------------------------------------------------------------------
 
@@ -92,8 +103,9 @@ pub struct Resampler {
 }
 
 impl Resampler {
-    pub fn new(input_rate: u32, speed: f64) -> Self {
-        let step = (input_rate as f64 * speed) / OUTPUT_RATE as f64;
+    pub fn new(input_rate: u32, asetrate: Option<f64>) -> Self {
+        let effective_rate = asetrate.unwrap_or(input_rate as f64);
+        let step = effective_rate / OUTPUT_RATE as f64;
         Resampler {
             step,
             pos: 0.0,
@@ -177,11 +189,13 @@ impl Biquad {
         Self::normalized(b0, b1, b2, a0, a1, a2)
     }
 
-    fn low_shelf(freq: f32, gain_db: f32, slope: f32) -> Self {
+    /// Low shelf with Q-factor width, matching ffmpeg af_biquads' QFACTOR
+    /// mode (alpha = sin(w0) / (2*Q)) used by the `bass` filter.
+    fn low_shelf_q(freq: f32, gain_db: f32, q: f32) -> Self {
         let a = 10f32.powf(gain_db / 40.0);
         let w0 = 2.0 * std::f32::consts::PI * freq / OUTPUT_RATE as f32;
         let (sin0, cos0) = w0.sin_cos();
-        let alpha = sin0 / 2.0 * ((a + 1.0 / a) * (1.0 / slope - 1.0) + 2.0).sqrt();
+        let alpha = sin0 / (2.0 * q);
         let two_sqrt_a_alpha = 2.0 * a.sqrt() * alpha;
         let b0 = a * ((a + 1.0) - (a - 1.0) * cos0 + two_sqrt_a_alpha);
         let b1 = 2.0 * a * ((a - 1.0) - (a + 1.0) * cos0);
@@ -338,7 +352,8 @@ mod tests {
             .map(|s| s.to_string())
             .collect();
         let chain = FilterChain::from_names(&names).expect("all names known");
-        assert!((chain.speed - 1.25).abs() < 1e-9);
+        // nightcore = asetrate=44100*1.25 = 55125 Hz, absolute.
+        assert_eq!(chain.asetrate, Some(55_125.0));
     }
 
     #[test]
@@ -347,14 +362,26 @@ mod tests {
     }
 
     #[test]
-    fn resampler_changes_duration() {
-        // 1 second of input at 48 kHz with speed 1.25 -> 0.8 s of output.
-        let mut resampler = Resampler::new(48_000, 1.25);
+    fn resampler_matches_ffmpeg_asetrate_semantics() {
+        // 1 s of 48 kHz input relabelled to 55125 Hz (nightcore), resampled
+        // back to 48 kHz: duration shrinks by 48000/55125 (speed 1.148x),
+        // exactly like `-af asetrate=55125 -ar 48000` — NOT by 1.25x.
+        let mut resampler = Resampler::new(48_000, Some(55_125.0));
         let input = vec![0.5f32; 48_000 * 2];
         let mut out = Vec::new();
         resampler.process(&input, &mut out);
-        let expected = (48_000f64 / 1.25) as usize * 2;
+        let expected = (48_000f64 * 48_000.0 / 55_125.0) as usize * 2;
         assert!((out.len() as i64 - expected as i64).abs() < 32);
+    }
+
+    #[test]
+    fn resampler_without_asetrate_only_converts_rate() {
+        // 44.1 kHz source without speed filters: plain rate conversion.
+        let mut resampler = Resampler::new(44_100, None);
+        let input = vec![0.25f32; 44_100 * 2];
+        let mut out = Vec::new();
+        resampler.process(&input, &mut out);
+        assert!((out.len() as i64 - (48_000 * 2) as i64).abs() < 32);
     }
 
     #[test]

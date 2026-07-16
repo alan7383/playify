@@ -209,7 +209,7 @@ fn decode_worker(spec: SourceSpec, mut chain: FilterChain, seek: f64, tx: SyncSe
         let spec = *decoded.spec();
         let channels = spec.channels.count().max(1);
         if resampler.is_none() {
-            resampler = Some(Resampler::new(spec.rate, chain.speed));
+            resampler = Some(Resampler::new(spec.rate, chain.asetrate));
         }
 
         // Packets vary in frame count; grow the reusable buffer when a
