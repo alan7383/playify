@@ -601,7 +601,9 @@ async def load_states_on_startup():
                             logger.info(
                                 f"[{guild_id}] Resuming: Reconnecting to voice channel '{channel.name}'..."
                             )
-                            player.voice_client = await channel.connect()
+                            from .services.rust_node import connect_voice
+
+                            player.voice_client = await connect_voice(channel)
 
                             text_channel_id = state.controller_channel_id or (
                                 channel.last_message.channel.id if channel.last_message else 0

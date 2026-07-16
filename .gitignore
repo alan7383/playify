@@ -8,3 +8,5 @@ __pycache__/
 .venv/
 ffmpeg.exe
 data/
+playify-rs/target/
+dump_project_context.txt

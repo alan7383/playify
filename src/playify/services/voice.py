@@ -144,6 +144,24 @@ async def play_silence_loop(guild_id: int):
     if not vc or not vc.is_connected():
         return
 
+    from .rust_node import USE_RUST_NODE, RustVoiceClient
+
+    if USE_RUST_NODE and isinstance(vc, RustVoiceClient):
+        # songbird keeps the voice connection alive natively (UDP keepalive +
+        # gateway heartbeat) without any audio source: no FFmpeg process at all.
+        logger.info(
+            f"[{guild_id}] 24/7 keep-alive delegated to the Rust node (0-cost idle)."
+        )
+        music_player.is_playing_silence = True
+        try:
+            while vc.is_connected():
+                await asyncio.sleep(20)
+        except asyncio.CancelledError:
+            pass
+        finally:
+            music_player.is_playing_silence = False
+        return
+
     logger.info(
         f"[{guild_id}] Starting FFmpeg silence loop to keep connection alive (Low CPU mode)."
     )
@@ -248,7 +266,9 @@ async def ensure_voice_connection(
             logger.info(
                 f"[{guild_id}] No active voice client. Attempting to connect to '{voice_channel.name}'."
             )
-            new_vc = await voice_channel.connect()
+            from .rust_node import connect_voice
+
+            new_vc = await connect_voice(voice_channel)
             music_player.voice_client = new_vc
             vc = new_vc
             logger.info(f"[{guild_id}] Successfully connected.")

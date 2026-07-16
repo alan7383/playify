@@ -46,7 +46,9 @@ async def reconnect_24_7(guild_id: int, channel: discord.VoiceChannel):
             return  # Already reconnected by another code path.
 
         try:
-            vc = await channel.connect()
+            from .services.rust_node import connect_voice
+
+            vc = await connect_voice(channel)
             music_player.voice_client = vc
             logger.info(
                 f"[{guild_id}] 24/7 mode: successfully reconnected to '{channel.name}' (attempt {attempt})."

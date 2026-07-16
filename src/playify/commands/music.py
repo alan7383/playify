@@ -1963,7 +1963,9 @@ async def reconnect(interaction: discord.Interaction):
         await asyncio.sleep(0.75)  # A small delay to ensure clean disconnection
 
         # Reconnect to the same channel
-        new_vc = await current_voice_channel.connect()
+        from ..services.rust_node import connect_voice
+
+        new_vc = await connect_voice(current_voice_channel)
         music_player.voice_client = new_vc
 
         if isinstance(current_voice_channel, discord.StageChannel):
