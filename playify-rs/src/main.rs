@@ -224,12 +224,15 @@ async fn handle_request(
 
             let guild_id = NonZeroU64::new(args.guild_id).ok_or("guild_id cannot be 0")?;
             let user_id = NonZeroU64::new(args.user_id).ok_or("user_id cannot be 0")?;
+            // Mandatory since songbird 0.6: the DAVE (E2EE) handshake needs to
+            // know which channel's MLS group to join.
+            let channel_id = args
+                .channel_id
+                .and_then(NonZeroU64::new)
+                .ok_or("channel_id is required")?;
 
             let info = ConnectionInfo {
-                channel_id: args
-                    .channel_id
-                    .and_then(NonZeroU64::new)
-                    .map(ChannelId::from),
+                channel_id: ChannelId::from(channel_id),
                 endpoint,
                 guild_id: GuildId::from(guild_id),
                 session_id: args.session_id,

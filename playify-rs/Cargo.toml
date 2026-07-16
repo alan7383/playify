@@ -8,7 +8,7 @@ license = "MIT"
 [dependencies]
 # Voice driver only: discord.py keeps the gateway and forwards
 # VOICE_SERVER_UPDATE / VOICE_STATE_UPDATE payloads to us over WebSocket.
-songbird = { version = "0.5", default-features = false, features = ["driver", "rustls", "tungstenite"] }
+songbird = { version = "0.6", default-features = false, features = ["driver", "rustls", "tungstenite"] }
 
 # Songbird does not request any codecs from symphonia by itself; enabling the
 # features here activates them for the whole dependency graph (cargo feature
