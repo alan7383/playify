@@ -18,6 +18,11 @@
   ~19 MB of RAM while playing music. Zero FFmpeg. Zero resident Python.</strong>
 </p>
 
+> [!WARNING]
+> **Playify v3 is highly experimental and not yet on par with V2.**
+> Bugs, missing features, and stability issues are to be expected. Please prefer using the **V2 version (Python/Node)** for daily use until V3 is fully stabilized.
+
+
 ---
 
 ### ~ what is this branch
