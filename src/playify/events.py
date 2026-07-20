@@ -234,12 +234,18 @@ async def global_interaction_check(interaction: discord.Interaction) -> bool:
         return True
 
     guild_id = interaction.guild.id
-    allowed_ids = get_guild_state(guild_id).allowed_channels
+    state = get_guild_state(guild_id)
+    allowed_ids = state.allowed_channels
 
     if not allowed_ids:
         return True
 
-    if interaction.user.guild_permissions.manage_guild:
+    # Allow setup commands so admins can configure the bot from anywhere
+    if getattr(interaction, "command", None) and getattr(interaction.command, "qualified_name", "").startswith("setup"):
+        return True
+
+    # Allow interactions in the dedicated controller channel
+    if state.controller_channel_id and interaction.channel_id == state.controller_channel_id:
         return True
 
     if interaction.channel_id in allowed_ids:
