@@ -155,6 +155,11 @@ async fn main() {
                 Box::pin(async move {
                     match error {
                         poise::FrameworkError::Command { error, ctx, .. } => {
+                            if error.to_string().contains("Unknown interaction") {
+                                // Ignore it to avoid dashboard spam. This usually means
+                                // another bot instance (like v2) already acknowledged it.
+                                return;
+                            }
                             warn!("command error: {error}");
                             let _ = ctx.say(format!("❌ {error}")).await;
                         }

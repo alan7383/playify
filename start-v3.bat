@@ -43,10 +43,13 @@ if not defined YTDLP (
 set "PLAYIFY_YTDLP=%CD%\%YTDLP%"
 
 REM --- 3. Get the bot binary ----------------------------------------------------
-REM Priority: local build ^> bin\ copy ^> prebuilt download ^> build from source.
+REM Priority: local build > build from source (if repo present) > prebuilt download > bin\ copy.
 set "BOT=playify-rs\target\release\playify-v3.exe"
-if not exist "%BOT%" if exist "bin\playify-v3.exe" set "BOT=bin\playify-v3.exe"
-if not exist "%BOT%" (
+if not exist "%BOT%" if exist "playify-rs\Cargo.toml" (
+    echo   Source code detected, skipping prebuilt binary download...
+) else if not exist "%BOT%" if exist "bin\playify-v3.exe" (
+    set "BOT=bin\playify-v3.exe"
+) else if not exist "%BOT%" (
     echo   Downloading the prebuilt Playify v3 binary...
     if not exist "bin" mkdir bin
     powershell -NoProfile -Command "try { Invoke-WebRequest -Uri 'https://github.com/alan7383/playify/releases/latest/download/playify-v3-windows-x86_64.exe' -OutFile 'bin\playify-v3.exe' } catch { exit 1 }"
