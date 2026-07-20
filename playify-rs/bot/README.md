@@ -1,5 +1,9 @@
 # Playify v3 — the full-Rust bot (experimental)
 
+> [!WARNING]
+> **Playify v3 is highly experimental and not yet on par with V2.**
+> Bugs, missing features, and stability issues are to be expected. Please prefer using the **V2 version (Python/Node)** for daily use until V3 is fully stabilized.
+
 One native process, no resident Python: serenity gateway + poise slash
 commands + songbird voice (DAVE/E2EE) + the shared `playify-audio` DSP
 engine. yt-dlp runs as a short-lived subprocess per resolution.
