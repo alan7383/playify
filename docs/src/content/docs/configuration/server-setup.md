@@ -28,6 +28,11 @@ Use the `/setup allowlist` command. You can specify up to 5 text channels where 
 ```
 Once configured, anyone trying to use Playify outside of these channels will receive an error message.
 
+> [!NOTE]
+> **Admin Bypass:** Users with the **Manage Server** (`manage_guild`) permission or Server Administrators bypass channel allowlist restrictions and can use bot commands in any channel.
+
+![Channel restriction message](../../../assets/allowlist-restricted.png)
+
 ### Resetting the allowlist:
 To allow commands everywhere again, run:
 ```

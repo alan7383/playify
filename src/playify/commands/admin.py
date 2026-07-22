@@ -22,14 +22,15 @@ async def toggle_kawaii(interaction: discord.Interaction):
         state.locale = Locale.EN_US
     else:
         state.locale = Locale.EN_X_KAWAII
-    state = (
+    await save_all_states()
+    state_msg = (
         get_messages("kawaii_state_enabled", guild_id)
         if (get_guild_state(guild_id).locale == Locale.EN_X_KAWAII)
         else get_messages("kawaii_state_disabled", guild_id)
     )
 
     embed = Embed(
-        description=get_messages("kawaii_toggle", guild_id, state=state),
+        description=get_messages("kawaii_toggle", guild_id, state=state_msg),
         color=(
             0xFFB6C1
             if (get_guild_state(guild_id).locale == Locale.EN_X_KAWAII)
@@ -94,6 +95,7 @@ class SetupCommands(app_commands.Group):
 
         get_guild_state(guild_id).controller_channel_id = target_channel.id
         get_guild_state(guild_id).controller_message_id = None
+        await save_all_states()
 
         await interaction.response.send_message(
             get_messages(
@@ -137,6 +139,7 @@ class SetupCommands(app_commands.Group):
             state = get_guild_state(guild_id)
             if state.allowed_channels:
                 state.allowed_channels.clear()
+                await save_all_states()
                 logger.info(
                     f"Command channel allowlist has been RESET for guild {guild_id}."
                 )
@@ -160,6 +163,7 @@ class SetupCommands(app_commands.Group):
         if channels:
             allowed_ids = {ch.id for ch in channels}
             get_guild_state(guild_id).allowed_channels = allowed_ids
+            await save_all_states()
 
             channel_mentions = ", ".join([ch.mention for ch in channels])
             logger.info(

@@ -1597,14 +1597,7 @@ async def status(interaction: discord.Interaction):
         f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     )
     discord_py_version = discord.__version__
-    # Read from package metadata: importing yt_dlp costs ~15 MB of RSS in
-    # the main process for a version string.
-    try:
-        import importlib.metadata
-
-        yt_dlp_version = importlib.metadata.version("yt-dlp")
-    except Exception:
-        yt_dlp_version = "unknown"
+    yt_dlp_version = yt_dlp.version.__version__
     os_info = f"{platform.system()} {platform.release()}"
 
     guild_id = interaction.guild_id
@@ -1788,6 +1781,7 @@ async def radio_24_7(interaction: discord.Interaction, mode: str):
             return
 
         get_guild_state(guild_id)._24_7_mode = False
+        await save_all_states()
         music_player.autoplay_enabled = False
         music_player.loop_current = False
         music_player.radio_playlist.clear()
@@ -1853,6 +1847,7 @@ async def radio_24_7(interaction: discord.Interaction, mode: str):
         )
 
     get_guild_state(guild_id)._24_7_mode = True
+    await save_all_states()
     music_player.loop_current = False
 
     if mode == "auto":
@@ -1970,9 +1965,7 @@ async def reconnect(interaction: discord.Interaction):
         await asyncio.sleep(0.75)  # A small delay to ensure clean disconnection
 
         # Reconnect to the same channel
-        from ..services.rust_node import connect_voice
-
-        new_vc = await connect_voice(current_voice_channel)
+        new_vc = await current_voice_channel.connect()
         music_player.voice_client = new_vc
 
         if isinstance(current_voice_channel, discord.StageChannel):
