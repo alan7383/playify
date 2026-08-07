@@ -13,75 +13,6 @@ from typing import Optional
 from .platform_utils import get_bot_creationflags, kill_bot_process
 
 
-class NodeStatsPoller:
-    """Polls the playify-rs audio node's /metrics endpoint in the background.
-
-    The node is optional (PLAYIFY_RUST_NODE): when it is not running, the
-    poller just reports unavailable — one refused local connection every
-    two seconds costs nothing.
-    """
-
-    POLL_INTERVAL = 2.0
-
-    def __init__(self):
-        self.available = False
-        self.memory_mb = 0.0
-        self.sessions = 0
-        self.tracks_playing = 0
-        self.tracks_played_total = 0
-        self.uptime_seconds = 0
-        self.engines: dict[str, int] = {}
-        port = os.getenv("PLAYIFY_NODE_METRICS_PORT", "8792")
-        self._url = f"http://127.0.0.1:{port}/metrics"
-        thread = threading.Thread(target=self._poll_loop, daemon=True)
-        thread.start()
-
-    def _poll_loop(self) -> None:
-        import urllib.request
-
-        while True:
-            try:
-                with urllib.request.urlopen(self._url, timeout=0.5) as response:
-                    self._parse(response.read().decode("utf-8", errors="replace"))
-                self.available = True
-            except Exception:
-                self.available = False
-            time.sleep(self.POLL_INTERVAL)
-
-    def _parse(self, text: str) -> None:
-        engines: dict[str, int] = {}
-        for line in text.splitlines():
-            if line.startswith("#") or " " not in line:
-                continue
-            name, _, value = line.rpartition(" ")
-            try:
-                value = float(value)
-            except ValueError:
-                continue
-            if name == "playify_node_memory_bytes":
-                self.memory_mb = value / (1024 * 1024)
-            elif name == "playify_node_sessions":
-                self.sessions = int(value)
-            elif name == "playify_node_tracks_playing":
-                self.tracks_playing = int(value)
-            elif name == "playify_node_tracks_played_total":
-                self.tracks_played_total = int(value)
-            elif name == "playify_node_uptime_seconds":
-                self.uptime_seconds = int(value)
-            elif name.startswith("playify_node_engine_tracks{"):
-                match = re.search(r'engine="([^"]+)"', name)
-                if match and value > 0:
-                    engines[match.group(1)] = int(value)
-        self.engines = engines
-
-    @property
-    def engines_str(self) -> str:
-        """Compact engine summary, e.g. "2 dsp, 1 direct"."""
-        if not self.engines:
-            return "idle"
-        return ", ".join(f"{count} {name}" for name, count in sorted(self.engines.items()))
-
-
 class BotProcess:
     """Manages the Playify bot as a subprocess with real-time log capture."""
 
@@ -107,9 +38,6 @@ class BotProcess:
         self.active_players: int = 0
         self.queued_songs: int = 0
         self.url_cache_size: int = 0
-
-        # Rust audio node stats (optional; polls its /metrics endpoint)
-        self.node = NodeStatsPoller()
 
     @property
     def is_running(self) -> bool:

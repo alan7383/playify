@@ -13,6 +13,7 @@ from discord.ui import View, Button
 from discord import ButtonStyle
 from discord.app_commands import Choice
 import asyncio
+import yt_dlp
 import re
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
@@ -119,45 +120,18 @@ def init_db():
 process_pool = None
 process_pool_init_error = None
 
-# yt-dlp extraction is network-bound: a few workers are enough, and each
-# warm worker holds yt-dlp in memory (~60+ MB). One worker per physical
-# core (the old behavior) ballooned RSS on many-core machines for zero
-# throughput gain. max_tasks_per_child recycles workers so memory leaked
-# by extractors is periodically returned to the OS.
 try:
-    _YDL_WORKERS = int(os.getenv("PLAYIFY_YTDLP_WORKERS", ""))
-except ValueError:
-    _YDL_WORKERS = 0
-if _YDL_WORKERS <= 0:
-    _YDL_WORKERS = min(3, psutil.cpu_count(logical=False) or os.cpu_count() or 1)
-
-try:
-    import multiprocessing
-
-    process_pool = ProcessPoolExecutor(
-        max_workers=_YDL_WORKERS,
-        mp_context=multiprocessing.get_context("spawn"),
-        max_tasks_per_child=32,
-    )
-except (NotImplementedError, PermissionError, OSError, TypeError, ValueError) as exc:
+    process_pool = ProcessPoolExecutor(max_workers=psutil.cpu_count(logical=False))
+except (NotImplementedError, PermissionError, OSError) as exc:
     process_pool_init_error = exc
     try:
-        process_pool = ProcessPoolExecutor(max_workers=_YDL_WORKERS)
+        process_pool = ProcessPoolExecutor(max_workers=os.cpu_count())
     except (PermissionError, OSError) as fallback_exc:
         process_pool = None
         process_pool_init_error = fallback_exc
 
 SILENT_MESSAGES = True
 IS_PUBLIC_VERSION = False
-
-
-class YtdlDownloadError(Exception):
-    """Extraction failure reported by a yt-dlp pool worker.
-
-    yt-dlp itself is only imported inside the worker processes (it costs
-    ~15 MB of RSS); the main process uses this exception instead of
-    yt_dlp.utils.DownloadError so it never has to import the library.
-    """
 
 # --- Logging ---
 
@@ -210,11 +184,7 @@ except Exception as e:
 
 # --- Caching ---
 
-# Entries are slimmed yt-dlp info dicts (a few KB each since ydl_worker
-# strips formats/thumbnails/subtitles). 2000 tracks x 2h TTL is far more
-# than a self-hosted bot replays; the previous 75000 ceiling let the cache
-# grow into hundreds of MB with full-size dicts.
-url_cache = TTLCache(maxsize=2000, ttl=7200)
+url_cache = TTLCache(maxsize=75000, ttl=7200)
 
 translator = I18nTranslator(
     default_locale=Locale.EN_US, translations_dir=str(I18N_DIR)
@@ -631,9 +601,7 @@ async def load_states_on_startup():
                             logger.info(
                                 f"[{guild_id}] Resuming: Reconnecting to voice channel '{channel.name}'..."
                             )
-                            from .services.rust_node import connect_voice
-
-                            player.voice_client = await connect_voice(channel)
+                            player.voice_client = await channel.connect()
 
                             text_channel_id = state.controller_channel_id or (
                                 channel.last_message.channel.id if channel.last_message else 0

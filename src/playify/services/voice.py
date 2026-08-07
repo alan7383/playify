@@ -31,7 +31,7 @@ async def fetch_video_info_with_retry(query: str, ydl_opts_override=None):
         result = await run_ydl_with_low_priority(ydl_opts, query)
         url_cache[cache_key] = result
         return result
-    except YtdlDownloadError as e:
+    except yt_dlp.utils.DownloadError as e:
         error_str = str(e).lower()
         # Check for age restriction errors OR bot detection
         # AJOUT DE "bot" POUR FORCER L'UTILISATION DES COOKIES
@@ -70,10 +70,33 @@ async def fetch_video_info_with_retry(query: str, ydl_opts_override=None):
             raise e
 
 
-# The worker function lives in its own minimal module: pool children import
-# the module defining their task, and importing voice.py (hence core.py and
-# the whole bot) used to cost ~100 MB of RSS per worker on Windows.
-from .ydl_worker import ydl_worker
+def ydl_worker(ydl_opts, query, cookies_file=None):
+    """
+    This function runs in a separate process.
+    It changes its own priority and performs the yt-dlp extraction.
+    It now handles exceptions internally to avoid pickling errors.
+    """
+    # Change the priority of the current process
+    p = psutil.Process()
+    if platform.system() == "Windows":
+        p.nice(psutil.IDLE_PRIORITY_CLASS)
+    else:
+        # A niceness value of 19 is the lowest priority
+        os.nice(19)
+
+    if cookies_file and os.path.exists(cookies_file):
+        ydl_opts["cookiefile"] = cookies_file
+
+    try:
+        # Execute the heavy task
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            result = ydl.extract_info(query, download=False)
+        # On success, return a dictionary indicating success and the data
+        return {"status": "success", "data": result}
+    except Exception as e:
+        # On failure, return a dictionary indicating error and the error message string
+        # This prevents trying to pickle the entire exception object.
+        return {"status": "error", "message": str(e)}
 
 
 async def run_ydl_with_low_priority(
@@ -103,7 +126,7 @@ async def run_ydl_with_low_priority(
 
     if result_dict.get("status") == "error":
         error_message = result_dict.get("message", "Unknown error in subprocess")
-        raise YtdlDownloadError(error_message)
+        raise yt_dlp.utils.DownloadError(error_message)
 
     return result_dict.get("data")
 
@@ -119,24 +142,6 @@ async def play_silence_loop(guild_id: int):
     vc = music_player.voice_client
 
     if not vc or not vc.is_connected():
-        return
-
-    from .rust_node import USE_RUST_NODE, RustVoiceClient
-
-    if USE_RUST_NODE and isinstance(vc, RustVoiceClient):
-        # songbird keeps the voice connection alive natively (UDP keepalive +
-        # gateway heartbeat) without any audio source: no FFmpeg process at all.
-        logger.info(
-            f"[{guild_id}] 24/7 keep-alive delegated to the Rust node (0-cost idle)."
-        )
-        music_player.is_playing_silence = True
-        try:
-            while vc.is_connected():
-                await asyncio.sleep(20)
-        except asyncio.CancelledError:
-            pass
-        finally:
-            music_player.is_playing_silence = False
         return
 
     logger.info(
@@ -243,9 +248,7 @@ async def ensure_voice_connection(
             logger.info(
                 f"[{guild_id}] No active voice client. Attempting to connect to '{voice_channel.name}'."
             )
-            from .rust_node import connect_voice
-
-            new_vc = await connect_voice(voice_channel)
+            new_vc = await voice_channel.connect()
             music_player.voice_client = new_vc
             vc = new_vc
             logger.info(f"[{guild_id}] Successfully connected.")

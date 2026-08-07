@@ -5,7 +5,6 @@ from ..helpers.common import *
 from ..helpers.url_utils import *
 from ..models.lazy_search import LazySearchItem
 from ..services.voice import fetch_video_info_with_retry, run_ydl_with_low_priority
-from ..services.rust_node import USE_RUST_NODE, RustVoiceClient
 from ..ui.controller import update_controller
 
 
@@ -552,6 +551,11 @@ async def play_audio(guild_id, seek_time=0, is_a_loop=False, song_that_just_ende
                 f"{ffmpeg_options.get('options', '')} -af \"{filter_chain}\"".strip()
             )
 
+        source = discord.PCMVolumeTransformer(
+            discord.FFmpegPCMAudio(audio_url, **ffmpeg_options),
+            volume=music_player.volume,
+        )
+
         callback = lambda e: bot.loop.create_task(after_playing(e))
 
         if (
@@ -563,25 +567,7 @@ async def play_audio(guild_id, seek_time=0, is_a_loop=False, song_that_just_ende
             )
             return
 
-        if USE_RUST_NODE and isinstance(music_player.voice_client, RustVoiceClient):
-            # The Rust node handles decoding/encoding/sending; FFmpeg is only
-            # spawned node-side when a filter chain or a seek requires it.
-            await music_player.voice_client.play_remote(
-                audio_url,
-                after=callback,
-                volume=music_player.volume,
-                seek=seek_time,
-                filters=filter_chain,
-                filter_names=[f for f in active_filters if f in AUDIO_FILTERS],
-                is_local_file=music_player.current_info.get("source_type") == "file",
-                force_ffmpeg=music_player.is_current_live,
-            )
-        else:
-            source = discord.PCMVolumeTransformer(
-                discord.FFmpegPCMAudio(audio_url, **ffmpeg_options),
-                volume=music_player.volume,
-            )
-            music_player.voice_client.play(source, after=callback)
+        music_player.voice_client.play(source, after=callback)
 
         music_player.start_time = seek_time
         music_player.playback_started_at = time.time()

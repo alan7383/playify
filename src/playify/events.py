@@ -46,9 +46,7 @@ async def reconnect_24_7(guild_id: int, channel: discord.VoiceChannel):
             return  # Already reconnected by another code path.
 
         try:
-            from .services.rust_node import connect_voice
-
-            vc = await connect_voice(channel)
+            vc = await channel.connect()
             music_player.voice_client = vc
             logger.info(
                 f"[{guild_id}] 24/7 mode: successfully reconnected to '{channel.name}' (attempt {attempt})."
@@ -234,18 +232,12 @@ async def global_interaction_check(interaction: discord.Interaction) -> bool:
         return True
 
     guild_id = interaction.guild.id
-    state = get_guild_state(guild_id)
-    allowed_ids = state.allowed_channels
+    allowed_ids = get_guild_state(guild_id).allowed_channels
 
     if not allowed_ids:
         return True
 
-    # Allow setup commands so admins can configure the bot from anywhere
-    if getattr(interaction, "command", None) and getattr(interaction.command, "qualified_name", "").startswith("setup"):
-        return True
-
-    # Allow interactions in the dedicated controller channel
-    if state.controller_channel_id and interaction.channel_id == state.controller_channel_id:
+    if interaction.user.guild_permissions.manage_guild:
         return True
 
     if interaction.channel_id in allowed_ids:

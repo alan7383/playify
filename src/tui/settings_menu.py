@@ -1,9 +1,6 @@
 """Settings Menu Wizard for Playify."""
 
-import os
-import json
-from pathlib import Path
-import traceback
+from rich import box
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Prompt, IntPrompt
@@ -23,6 +20,13 @@ except ImportError:
     ICON_GEAR, ICON_PLAY, BOX_TL, BOX_TR, BOX_BL, BOX_BR, BOX_H, BOX_V = "#", ">", "+", "+", "+", "+", "-", "|"
 
 from ..playify.config import Config
+
+STATUS_TYPES = {
+    0: "Playing",
+    2: "Listening",
+    3: "Watching",
+    5: "Competing"
+}
 
 def clear_screen(console: Console):
     console.clear()
@@ -46,31 +50,16 @@ def print_banner(console: Console):
     )
     console.print(panel)
 
-    st_type = STATUS_TYPES.get(Config.get("bot_status_type"), "Unknown")
-    bot_status_text = Config.get("bot_status_text")
-    st_text = bot_status_text if bot_status_text else f"[{GRAY_DARK}]<None>[/]"
-    
-    table.add_row(f"[{BLUE_ICE}][ 1 ][/]", "Bot Status Text", st_text)
-    table.add_row(f"[{BLUE_ICE}][ 2 ][/]", "Bot Status Type", f"{st_type} (Code {Config.get('bot_status_type')})")
-    table.add_row(f"[{BLUE_ICE}][ 3 ][/]", "Controller Idle Image URL", Config.get("controller_idle_image"))
 def draw_menu(console: Console):
     clear_screen(console)
     print_banner(console)
     console.print()
     
-    from rich import box
     table = Table(show_header=False, box=box.SIMPLE_HEAD, padding=(0, 3))
     table.add_column("Key", style=f"bold {BLUE_LIGHT}", justify="right")
     table.add_column("Description", style=STEEL)
     table.add_column("Current Value", style=f"bold {WHITE}")
     
-    STATUS_TYPES = {
-        0: "Playing",
-        2: "Listening",
-        3: "Watching",
-        5: "Competing"
-    }
-
     st_type = STATUS_TYPES.get(Config.get("bot_status_type"), "Unknown")
     bot_status_text = Config.get("bot_status_text")
     st_text = bot_status_text if bot_status_text else f"[{GRAY_DARK}]<None>[/]"
