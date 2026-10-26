@@ -306,11 +306,16 @@ async def play(interaction: discord.Interaction, query: str):
     async def add_and_update_controller(info: dict):
         queue_item = {
             "url": info.get("webpage_url", info.get("url", "#")),
-            "title": info.get("title", "Unknown Title"),
+            "title": info.get("original_title") or info.get("title", "Unknown Title"),
+            "artist": info.get("original_artist") or info.get("artist") or info.get("uploader"),
             "webpage_url": info.get("webpage_url", info.get("url", "#")),
             "thumbnail": info.get("thumbnail"),
             "is_single": True,
             "requester": interaction.user,
+            "original_platform": info.get("original_platform"),
+            "original_url": info.get("original_url"),
+            "original_title": info.get("original_title"),
+            "original_artist": info.get("original_artist"),
         }
         await music_player.queue.put(queue_item)
         await update_controller(bot, guild_id, interaction=interaction)
@@ -414,11 +419,19 @@ async def play(interaction: discord.Interaction, query: str):
                         f"{search_prefix}{sanitize_query(search_term)}",
                         ydl_opts_override={"noplaylist": True},
                     )
+                    if not info or not info.get("entries"):
+                        raise ValueError(f"No audio stream found for '{search_term}'.")
                     video = info["entries"][0]
+                    video["original_platform"] = platform_name
+                    video["original_url"] = query
+                    video["original_title"] = track_name
+                    video["original_artist"] = artist_name
                     await add_and_update_controller(video)
                 else:
                     # Gestion d'une playlist complète
                     await handle_platform_playlist(platform_tracks, platform_name)
+            else:
+                raise ValueError(f"No tracks found for {platform_name} link.")
             return  # On a fini avec ce cas
 
         # Cas 2: Plateformes directes (SoundCloud, YouTube, Bandcamp, lien .mp3)
@@ -822,16 +835,22 @@ async def play_next(
 
             if is_platform_link:
                 tracks = None
+                platform_name = None
                 if spotify_regex.match(query):
                     tracks = await process_spotify_url(query, interaction)
+                    platform_name = "Spotify"
                 elif deezer_regex.match(query):
                     tracks = await process_deezer_url(query, interaction)
+                    platform_name = "Deezer"
                 elif apple_music_regex.match(query):
                     tracks = await process_apple_music_url(query, interaction)
+                    platform_name = "Apple Music"
                 elif tidal_regex.match(query):
                     tracks = await process_tidal_url(query, interaction)
+                    platform_name = "Tidal"
                 elif amazon_music_regex.match(query):
                     tracks = await process_amazon_music_url(query, interaction)
+                    platform_name = "Amazon Music"
 
                 if tracks:
                     if len(tracks) > 1:
@@ -850,6 +869,8 @@ async def play_next(
                         return
                     track_name, artist_name = tracks[0]
                     search_term = f"{track_name} {artist_name}"
+                else:
+                    raise ValueError(f"No tracks found for {platform_name} link.")
 
             soundcloud_regex = re.compile(r"^(https?://)?(www\.)?(soundcloud\.com)/.+$")
             direct_link_regex = re.compile(
@@ -880,11 +901,16 @@ async def play_next(
 
             queue_item = {
                 "url": info.get("webpage_url", info.get("url")),
-                "title": info.get("title", "Unknown Title"),
+                "title": track_name if is_platform_link else info.get("title", "Unknown Title"),
+                "artist": artist_name if is_platform_link else (info.get("artist") or info.get("uploader")),
                 "webpage_url": info.get("webpage_url", info.get("url")),
                 "thumbnail": info.get("thumbnail"),
                 "is_single": True,
                 "requester": interaction.user,
+                "original_platform": platform_name if is_platform_link else info.get("original_platform"),
+                "original_url": query if is_platform_link else info.get("original_url"),
+                "original_title": track_name if is_platform_link else info.get("original_title"),
+                "original_artist": artist_name if is_platform_link else info.get("original_artist"),
             }
         except Exception as e:
             embed = Embed(
@@ -1566,9 +1592,11 @@ async def status(interaction: discord.Interaction):
     uptime_string = str(datetime.timedelta(seconds=uptime_seconds))
 
     # --- MUSIC & PLAYER METRICS ---
-    active_players = len(guild_states)
+    active_players = sum(1 for vc in bot.voice_clients if vc.is_connected())
     total_queued_songs = sum(
-        s.music_player.queue.qsize() for s in guild_states.values()
+        get_guild_state(guild.id).music_player.queue.qsize()
+        for guild in bot.guilds
+        if guild.id in guild_states
     )
     ffmpeg_processes = 0
     try:
@@ -1581,6 +1609,11 @@ async def status(interaction: discord.Interaction):
 
     # --- HOST SYSTEM METRICS ---
     cpu_freq = psutil.cpu_freq()
+    cpu_freq_current = (
+        round(cpu_freq.current)
+        if cpu_freq and getattr(cpu_freq, "current", None)
+        else get_messages("status.not_applicable", interaction.guild_id)
+    )
     cpu_load = psutil.cpu_percent(interval=0.1)
     ram_info = psutil.virtual_memory()
     ram_total = format_bytes(ram_info.total)
@@ -1645,7 +1678,7 @@ async def status(interaction: discord.Interaction):
             guild_id,
             os_info=os_info,
             cpu_load=cpu_load,
-            cpu_freq_current=cpu_freq.current,
+            cpu_freq_current=cpu_freq_current,
             ram_used=ram_used,
             ram_total=ram_total,
             ram_percent=ram_percent,

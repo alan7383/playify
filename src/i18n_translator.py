@@ -146,12 +146,17 @@ class I18nTranslator:
             def replacer(match) -> str:
                 var, fmt = match.group(1), match.group(2)
                 val = kwargs.get(var, '')
-                if fmt == 'upper': return str(val).upper()
-                if fmt == 'lower': return str(val).lower()
-                if fmt == 'fuzzy': return fuzzy_format(str(val))
+                if fmt:
+                    if fmt == 'upper': return str(val).upper()
+                    if fmt == 'lower': return str(val).lower()
+                    if fmt == 'fuzzy': return fuzzy_format(str(val))
+                    try:
+                        return f"{val:{fmt}}"
+                    except (ValueError, TypeError):
+                        return str(val)
                 return str(val)
 
-            value = re.sub(r"\{(\w+)(?:\|(\w+))?\}", replacer, value)
+            value = re.sub(r"\{(\w+)(?:[|:]([a-zA-Z0-9_.]+))?\}", replacer, value)
             value = re.sub(r' +', ' ', value).strip()
             return value
 

@@ -476,7 +476,20 @@ async def play_audio(guild_id, seek_time=0, is_a_loop=False, song_that_just_ende
             )
             try:
                 refreshed_info = await fetch_video_info_with_retry(url_for_fetching)
+                preserved_fields = {
+                    k: music_player.current_info[k]
+                    for k in (
+                        "original_platform",
+                        "original_url",
+                        "original_title",
+                        "original_artist",
+                        "artist",
+                        "requester",
+                    )
+                    if k in music_player.current_info
+                }
                 music_player.current_info.update(refreshed_info)
+                music_player.current_info.update(preserved_fields)
             except Exception as e:
                 logger.error(
                     f"[{guild_id}] FAILED to refresh stream URL for {url_for_fetching}: {e}",

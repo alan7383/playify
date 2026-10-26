@@ -18,7 +18,15 @@ Thanks to this library, Playify can fetch metadata for any public Spotify link e
 - **No client secret required:** you don't have to manage or rotate API tokens.
 - **Privacy & simplicity:** just paste your link and Playify handles the rest.
 
-*Note: Playify uses this metadata to find the exact matching audio track on YouTube or SoundCloud, ensuring high-quality playback.*
+### Why does audio stream from YouTube or SoundCloud?
+Spotify encrypts all its audio streams using DRM (Widevine) and does **not** provide direct audio stream endpoints in its Web API (even with a Spotify Developer account or Premium subscription). Spotify's Terms of Service also prohibit extracting or streaming audio directly.
+
+Like all major Discord music bots (such as FredBoat, Rythm, or Hydra), Playify extracts the track title, artist, and album from Spotify, and then seamlessly matches the track to the best audio stream on YouTube (or SoundCloud in public version).
+
+Playify fully preserves your Spotify metadata throughout playback:
+- The Discord music controller displays the exact Spotify song title and artist name.
+- Clicking the song title opens the track directly on Spotify.
+- The footer accurately displays `Source: Spotify 🟢`.
 
 ## Official API (optional for power users)
 

@@ -692,10 +692,14 @@ async def create_controller_embed(bot, guild_id):
         return embed
 
     info = music_player.current_info
-    title = info.get("title", get_messages("player.unknown_title", guild_id))
+    title = info.get("original_title") or info.get("title", get_messages("player.unknown_title", guild_id))
     thumbnail = info.get("thumbnail")
     requester = info.get("requester", bot.user)
-    artist = info.get("uploader", get_messages("player.unknown_artist", guild_id))
+    artist = (
+        info.get("original_artist")
+        or info.get("artist")
+        or info.get("uploader", get_messages("player.unknown_artist", guild_id))
+    )
 
     is_24_7_normal = (
         get_guild_state(guild_id)._24_7_mode and not music_player.autoplay_enabled
@@ -820,8 +824,9 @@ async def create_controller_embed(bot, guild_id):
         inline=False,
     )
 
+    song_url = info.get("original_url") or info.get("webpage_url", info.get("url", "#"))
     now_playing_title_display = (
-        f"**[{title}]({info.get('webpage_url', info.get('url', '#'))})**"
+        f"**[{title}]({song_url})**"
         if info.get("source_type") != "file"
         else get_messages("queue.now_playing_format.file", guild_id, title=title)
     )

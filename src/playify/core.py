@@ -453,7 +453,11 @@ def _clean_track_for_db(track):
         return {
             "url": f"{search_prefix}{title} {artist}".strip(),
             "title": title,
+            "artist": artist,
             "is_single": True,
+            "original_platform": getattr(track, "original_platform", None),
+            "original_title": title,
+            "original_artist": artist,
         }
 
     safe = {}

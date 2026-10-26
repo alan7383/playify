@@ -330,7 +330,7 @@ status:
     value: "**Active Players:** {active_players}\n**Queued Songs:** {total_queued_songs}\n**FFmpeg Processes:** `{ffmpeg_processes}`\n**URL Cache:** {url_cache_size}/{url_cache_max}"
   host:
     title: "💻 Host System"
-    value: "**OS:** {os_info}\n**CPU:** {cpu_load}% @ {cpu_freq_current:.0f}MHz\n**RAM:** {ram_used} / {ram_total} ({ram_percent}%)\n**Disk:** {disk_used} / {disk_total} ({disk_percent}%)"
+    value: "**OS:** {os_info}\n**CPU:** {cpu_load}% @ {cpu_freq_current}MHz\n**RAM:** {ram_used} / {ram_total} ({ram_percent}%)\n**Disk:** {disk_used} / {disk_total} ({disk_percent}%)"
   environment:
     title: "⚙️ Environment"
     value: "**Python:** v{python_version}\n**Discord.py:** v{discord_py_version}\n**yt-dlp:** v{yt_dlp_version}\n**Bot RAM Usage:** {bot_ram_usage}"

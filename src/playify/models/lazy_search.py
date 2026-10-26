@@ -87,6 +87,8 @@ class LazySearchItem:
 
                 full_video_info["requester"] = self.requester
                 full_video_info["original_platform"] = self.original_platform
+                full_video_info["original_title"] = self.title
+                full_video_info["original_artist"] = self.artist
                 self.resolved_info = full_video_info
                 return self.resolved_info
 

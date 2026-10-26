@@ -330,7 +330,7 @@ status:
     value: "**Active parties:** {active_players}\n**Songs waiting:** {total_queued_songs}\n**My singing helpers:** `{ffmpeg_processes}`\n**My short-term memory:** {url_cache_size}/{url_cache_max}"
   host:
     title: "My Home! 💻"
-    value: "**I live here:** {os_info}\n**My brain:** {cpu_load}% @ {cpu_freq_current:.0f}MHz\n**My memory:** {ram_used} / {ram_total} ({ram_percent}%)\n**My storage:** {disk_used} / {disk_total} ({disk_percent}%) (´• ω •`)"
+    value: "**I live here:** {os_info}\n**My brain:** {cpu_load}% @ {cpu_freq_current}MHz\n**My memory:** {ram_used} / {ram_total} ({ram_percent}%)\n**My storage:** {disk_used} / {disk_total} ({disk_percent}%) (´• ω •`)"
   environment:
     title: "My Tools! ⚙️"
     value: "**Magic Language:** v{python_version}\n**Chatting Library:** v{discord_py_version}\n**Music Finder:** v{yt_dlp_version}\n**My Brain Space:** {bot_ram_usage} (◕‿◕✿)"

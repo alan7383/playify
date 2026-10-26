@@ -34,10 +34,15 @@ def get_track_display_info(track, guild_id: int = None) -> dict:
         if track.resolved_info and not track.resolved_info.get("error"):
             return {
                 "title": track.resolved_info.get(
-                    "title", get_messages("player.unknown_title", guild_id)
+                    "original_title",
+                    track.resolved_info.get(
+                        "title", get_messages("player.unknown_title", guild_id)
+                    ),
                 ),
                 "duration": track.resolved_info.get("duration", 0),
-                "webpage_url": track.resolved_info.get("webpage_url", "#"),
+                "webpage_url": track.resolved_info.get(
+                    "original_url", track.resolved_info.get("webpage_url", "#")
+                ),
                 "source_type": "lazy-resolved",
             }
         else:
@@ -54,9 +59,14 @@ def get_track_display_info(track, guild_id: int = None) -> dict:
 
     elif isinstance(track, dict):
         return {
-            "title": track.get("title", get_messages("player.unknown_title", guild_id)),
+            "title": track.get(
+                "original_title",
+                track.get("title", get_messages("player.unknown_title", guild_id)),
+            ),
             "duration": track.get("duration", 0),
-            "webpage_url": track.get("webpage_url", track.get("url", "#")),
+            "webpage_url": track.get(
+                "original_url", track.get("webpage_url", track.get("url", "#"))
+            ),
             "source_type": track.get("source_type"),
         }
 
@@ -187,12 +197,20 @@ def create_queue_item_from_info(info: dict, guild_id: int) -> dict:
         "url": info.get(
             "webpage_url", info.get("url")
         ),  # Prioritize the user-friendly URL
-        "title": info.get("title", get_messages("player.unknown_title", guild_id)),
+        "title": info.get(
+            "original_title",
+            info.get("title", get_messages("player.unknown_title", guild_id)),
+        ),
+        "artist": info.get("original_artist") or info.get("artist") or info.get("uploader"),
         "webpage_url": info.get("webpage_url", info.get("url")),
         "thumbnail": info.get("thumbnail"),
         "is_single": False,  # When re-queuing, it's part of a loop, not a single add
         "source_type": info.get("source_type"),  # Preserve for other potential types
         "requester": info.get("requester"),
+        "original_platform": info.get("original_platform"),
+        "original_url": info.get("original_url"),
+        "original_title": info.get("original_title"),
+        "original_artist": info.get("original_artist"),
     }
 
 
@@ -202,8 +220,12 @@ def create_queue_item_from_info(info: dict, guild_id: int) -> dict:
 def get_cleaned_song_info(music_info: dict, guild_id: int) -> tuple[str, str]:
     """Aggressively cleans the title and artist to optimize the search."""
 
-    title = music_info.get("title", get_messages("player.unknown_title", guild_id))
-    artist = music_info.get("uploader", get_messages("player.unknown_artist", guild_id))
+    title = music_info.get("original_title") or music_info.get("title", get_messages("player.unknown_title", guild_id))
+    artist = (
+        music_info.get("original_artist")
+        or music_info.get("artist")
+        or music_info.get("uploader", get_messages("player.unknown_artist", guild_id))
+    )
 
     # --- 1. Cleaning the artist name ---
     # ADDING "- Topic" TO THE LIST

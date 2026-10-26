@@ -27,3 +27,11 @@ Playify normally downloads FFmpeg automatically. If it failed:
 ## Do I need to enter my tokens every time?
 
 Nope! The setup script saves your tokens in a `.env` file. The next time you want to start the bot, just double-click `start.bat` (or run `start.sh`). It will instantly start the bot without asking for tokens again.
+
+## Why does playing a Spotify link stream from YouTube?
+
+Spotify uses DRM (Widevine) to encrypt all audio files and does **not** provide direct audio streaming through their Web API. Spotify Developer tokens only grant access to track and playlist metadata (song titles, artists, albums, etc.).
+
+This is why **every Discord music bot** (including Playify, FredBoat, Rythm, etc.) works by extracting the metadata from Spotify and streaming the matched audio track from YouTube or SoundCloud. 
+
+Playify preserves all Spotify metadata: the music controller displays the genuine Spotify title and artist, links directly back to the song on Spotify, and displays `Source: Spotify 🟢` in the controller footer.
